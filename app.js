@@ -242,13 +242,16 @@ function findAndShow(input) {
 
 function showDevice(device) {
   state.currentTag = normalizeTag(device.tagId);
-  const valid = isValid(device.nextCheck);
-  els.statusPanel.className = `status-panel ${valid ? "valid" : "invalid"}`;
+  const status = getCheckStatus(device.nextCheck);
+  els.statusPanel.className = `status-panel ${status}`;
   els.statusKicker.textContent = device.tagId;
-  els.statusText.textContent = valid ? "GÜLTIG" : "PRÜFEN";
-  els.statusSubline.textContent = valid
-    ? `Nächste Prüfung: ${formatDate(device.nextCheck)}`
-    : `Fällig seit: ${formatDate(device.nextCheck)}`;
+  els.statusText.textContent = status === "valid" ? "GETESTET UND GUT" : status === "soon" ? "BALD TESTEN" : "MUSS GETESTET WERDEN";
+  els.statusSubline.textContent =
+    status === "valid"
+      ? `Nächste Prüfung: ${formatDate(device.nextCheck)}`
+      : status === "soon"
+        ? `Innerhalb 1 Monat: ${formatDate(device.nextCheck)}`
+        : `Fällig seit: ${formatDate(device.nextCheck)}`;
   setDetails(device);
 }
 
@@ -272,12 +275,16 @@ function buildDeviceUrl(tagId) {
   return `${location.origin}${location.pathname}?id=${encodeURIComponent(normalizeTag(tagId))}`;
 }
 
-function isValid(dateValue) {
-  if (!dateValue) return false;
+function getCheckStatus(dateValue) {
+  if (!dateValue) return "unknown";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const check = new Date(`${dateValue}T00:00:00`);
-  return check >= today;
+  if (Number.isNaN(check.getTime())) return "unknown";
+  const diffDays = Math.ceil((check.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return "invalid";
+  if (diffDays <= 30) return "soon";
+  return "valid";
 }
 
 function formatDate(dateValue) {
@@ -321,9 +328,10 @@ function renderList() {
   for (const device of state.devices) {
     const row = document.createElement("div");
     row.className = "device-row";
-    const valid = isValid(device.nextCheck);
+    const status = getCheckStatus(device.nextCheck);
+    const label = status === "valid" ? "OK" : status === "soon" ? "BALD" : status === "unknown" ? "?" : "PRÜFEN";
     row.innerHTML = `
-      <div class="badge ${valid ? "valid" : "invalid"}">${valid ? "OK" : "PRÜFEN"}</div>
+      <div class="badge ${status}">${label}</div>
       <div class="row-main">
         <strong>${escapeHtml(device.part)}</strong>
         <span>${escapeHtml(device.tagId)} · ${escapeHtml(device.lab)} · ${escapeHtml(device.place)}</span>

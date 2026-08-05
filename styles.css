@@ -31,6 +31,8 @@ input {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  text-align: center;
   padding: 22px;
   border: 3px solid rgba(255, 255, 255, 0.18);
   background: #334155;
@@ -38,21 +40,29 @@ input {
 }
 
 .status-panel.valid {
-  background: #088a3a;
+  background: linear-gradient(135deg, #0b7f37 0%, #13b85a 52%, #83f28f 100%);
 }
 
 .status-panel.invalid {
-  background: #bd1f1f;
+  background: linear-gradient(135deg, #8f1118 0%, #d9232e 55%, #ff6b4a 100%);
+}
+
+.status-panel.soon {
+  background: linear-gradient(135deg, #b98000 0%, #ffd12d 58%, #fff176 100%);
+  color: #1f1600;
 }
 
 .status-panel.unknown {
-  background: #334155;
+  background: linear-gradient(135deg, #ff1493 0%, #ff4fd8 52%, #ffb3f1 100%);
+  color: #260014;
 }
 
 .status-kicker {
   font-size: 16px;
   text-transform: uppercase;
   font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 h1 {
@@ -66,6 +76,8 @@ h1 {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .controls,
@@ -260,11 +272,21 @@ form {
 }
 
 .badge.valid {
-  background: #088a3a;
+  background: #0b8f46;
 }
 
 .badge.invalid {
-  background: #bd1f1f;
+  background: #c9252d;
+}
+
+.badge.soon {
+  background: #d9a21b;
+  color: #1f1600;
+}
+
+.badge.unknown {
+  background: #ff1493;
+  color: #260014;
 }
 
 .row-main strong,
