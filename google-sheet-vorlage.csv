@@ -1,0 +1,4 @@
+Tag_ID,Bauteil,NaechstePruefung,Labor,Ort
+EL-001,Test Netzteil,2026-12-31,Labor 1,Tisch 1
+EL-002,Altes Kabel,2025-01-01,Labor 1,Schrank A
+EL-003,Steckdosenleiste,2026-09-30,Labor 2,Werkbank links

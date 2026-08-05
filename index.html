@@ -1,0 +1,108 @@
+﻿<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>DGUV NFC Check</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="status-panel unknown" id="statusPanel">
+        <div class="status-kicker" id="statusKicker">Bereit</div>
+        <h1 id="statusText">DGUV NFC Check</h1>
+        <p id="statusSubline">NFC scannen oder Tag-ID eingeben.</p>
+      </section>
+
+      <section class="controls" aria-label="Scan und Suche">
+        <button class="primary" id="scanButton" type="button">NFC scannen</button>
+        <div class="manual-search">
+          <input id="tagInput" autocomplete="off" placeholder="EL-001 oder ELEKTRO|EL-001" />
+          <button id="searchButton" type="button">Suchen</button>
+        </div>
+        <div class="write-actions">
+          <button id="writeUrlButton" type="button">NFC-Tag mit URL beschreiben</button>
+          <button id="writeTextButton" type="button">NFC-Tag mit ID beschreiben</button>
+        </div>
+        <p class="hint" id="nfcHint">Android Chrome benötigt HTTPS und aktiviertes NFC.</p>
+      </section>
+
+      <section class="details" aria-label="Gerätedaten">
+        <dl>
+          <div>
+            <dt>Bauteil</dt>
+            <dd id="partValue">-</dd>
+          </div>
+          <div>
+            <dt>Nächste Prüfung</dt>
+            <dd id="dateValue">-</dd>
+          </div>
+          <div>
+            <dt>Labor</dt>
+            <dd id="labValue">-</dd>
+          </div>
+          <div>
+            <dt>Ort</dt>
+            <dd id="placeValue">-</dd>
+          </div>
+          <div>
+            <dt>Tag-ID</dt>
+            <dd id="tagValue">-</dd>
+          </div>
+          <div class="wide">
+            <dt>Tag-URL</dt>
+            <dd class="url-value" id="urlValue">-</dd>
+          </div>
+        </dl>
+        <button class="copy-url" id="copyUrlButton" type="button">Tag-URL kopieren</button>
+      </section>
+
+      <section class="inventory" aria-label="Geräte verwalten">
+        <div class="section-title">
+          <h2>Geräte</h2>
+          <button id="reloadSheetButton" type="button">Sheet neu laden</button>
+        </div>
+        <div class="sheet-config">
+          <label for="sheetUrlInput">Google-Sheet-CSV-URL</label>
+          <div class="manual-search">
+            <input id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv" />
+            <button id="saveSheetUrlButton" type="button">Merken</button>
+          </div>
+          <p class="hint">Sheet im Web als CSV veröffentlichen. Ohne URL nutzt die App lokale Daten.</p>
+        </div>
+        <form id="deviceForm">
+          <input id="formTag" placeholder="Tag-ID, z. B. EL-003" required />
+          <input id="formPart" placeholder="Bauteil" required />
+          <input id="formDate" type="date" required />
+          <input id="formLab" placeholder="Labor" required />
+          <input id="formPlace" placeholder="Ort / Standort" required />
+          <button type="submit">Speichern</button>
+        </form>
+        <div class="data-actions">
+          <button id="addDemoButton" type="button">Testdaten</button>
+          <button id="exportButton" type="button">Export JSON</button>
+          <label class="import-label">
+            Import JSON
+            <input id="importInput" type="file" accept="application/json" />
+          </label>
+        </div>
+        <div class="device-list" id="deviceList"></div>
+      </section>
+
+      <section class="tomorrow" aria-label="Morgen testen">
+        <h2>Morgen testen</h2>
+        <ol>
+          <li>App über HTTPS auf dem Android-Handy öffnen.</li>
+          <li>Testdaten laden oder echte Geräte speichern.</li>
+          <li>Gerät anzeigen und <strong>NFC-Tag mit URL beschreiben</strong> drücken.</li>
+          <li>Leeren NTAG213-Sticker ans Handy halten.</li>
+          <li>Danach Tag antippen: Browser öffnet direkt rot/grün.</li>
+        </ol>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+

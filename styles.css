@@ -1,0 +1,321 @@
+:root {
+  color-scheme: light dark;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #111827;
+  color: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #111827;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.status-panel {
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  background: #334155;
+  color: white;
+}
+
+.status-panel.valid {
+  background: #088a3a;
+}
+
+.status-panel.invalid {
+  background: #bd1f1f;
+}
+
+.status-panel.unknown {
+  background: #334155;
+}
+
+.status-kicker {
+  font-size: 16px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 12px 0 10px;
+  font-size: clamp(42px, 12vw, 86px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.status-panel p {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.controls,
+.details,
+.inventory,
+.tomorrow {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f8fafc;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.primary,
+form button,
+.manual-search button,
+.data-actions button,
+.section-title button {
+  min-height: 48px;
+  border: 0;
+  background: #0f172a;
+  color: white;
+  font-weight: 700;
+  padding: 0 16px;
+}
+
+.primary {
+  width: 100%;
+  min-height: 64px;
+  font-size: 24px;
+}
+
+.manual-search,
+.write-actions,
+form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.manual-search {
+  grid-template-columns: 1fr auto;
+}
+
+.write-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.write-actions button {
+  min-height: 48px;
+  border: 1px solid #334155;
+  background: #e2e8f0;
+  color: #111827;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #9ca3af;
+  padding: 0 12px;
+  background: white;
+  color: #111827;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: #475569;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+dl .wide {
+  grid-column: 1 / -1;
+}
+
+dt {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.url-value {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.copy-url {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 1px solid #334155;
+  background: #e2e8f0;
+  color: #111827;
+  font-weight: 700;
+}
+
+.section-title,
+.data-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sheet-config {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+}
+
+.sheet-config label {
+  display: block;
+  font-weight: 700;
+}
+
+h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+form {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+}
+
+.data-actions {
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+
+.import-label {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #e2e8f0;
+  color: #111827;
+  font-weight: 700;
+}
+
+.import-label input {
+  display: none;
+}
+
+.device-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.tomorrow ol {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+
+.tomorrow li {
+  margin: 8px 0;
+}
+
+.device-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+}
+
+.badge {
+  padding: 6px 8px;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+}
+
+.badge.valid {
+  background: #088a3a;
+}
+
+.badge.invalid {
+  background: #bd1f1f;
+}
+
+.row-main strong,
+.row-main span {
+  display: block;
+}
+
+.row-main span {
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.row-actions button {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #111827;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .manual-search,
+  .write-actions,
+  form,
+  dl,
+  .device-row {
+    grid-template-columns: 1fr;
+  }
+
+  .status-panel {
+    min-height: 190px;
+  }
+
+  dd {
+    font-size: 21px;
+  }
+
+  .row-actions {
+    justify-content: stretch;
+  }
+
+  .row-actions button {
+    flex: 1;
+  }
+}
