@@ -5,6 +5,7 @@ const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
   { tagId: "EL-002", part: "Altes Kabel", nextCheck: "2025-01-01", lab: "Labor 1", place: "Schrank A" },
   { tagId: "EL-003", part: "Steckdosenleiste", nextCheck: "2026-09-30", lab: "Labor 2", place: "Werkbank links" },
+  { tagId: "EL-004", part: "Gelbtest Netzteil", nextCheck: "2026-08-20", lab: "Labor 1", place: "Testplatz Gelb" },
 ];
 
 const state = {
