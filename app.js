@@ -487,7 +487,14 @@ function loadDevices() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [...DEFAULT_DEVICES];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : [...DEFAULT_DEVICES];
+    if (!Array.isArray(parsed) || !parsed.length) return [...DEFAULT_DEVICES];
+    const merged = [...parsed];
+    for (const demo of DEFAULT_DEVICES) {
+      if (!merged.some((item) => normalizeTag(item.tagId) === normalizeTag(demo.tagId))) {
+        merged.push(demo);
+      }
+    }
+    return merged;
   } catch {
     return [...DEFAULT_DEVICES];
   }
