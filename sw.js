@@ -1,5 +1,5 @@
-const CACHE_NAME = "dguv-nfc-check-v7";
-const ASSETS = ["./", "./index.html", "./styles.css?v=7", "./app.js?v=7", "./manifest.webmanifest"];
+const CACHE_NAME = "dguv-nfc-check-v8";
+const ASSETS = ["./", "./index.html", "./styles.css?v=8", "./app.js?v=8", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

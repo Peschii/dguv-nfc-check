@@ -1,6 +1,7 @@
 ﻿const STORAGE_KEY = "dguv-nfc-devices-v1";
 const SHEET_URL_KEY = "dguv-nfc-sheet-url-v1";
 const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
+const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
 
 const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
@@ -21,6 +22,7 @@ const els = {
   statusText: document.getElementById("statusText"),
   statusSubline: document.getElementById("statusSubline"),
   scanButton: document.getElementById("scanButton"),
+  inspectorInput: document.getElementById("inspectorInput"),
   writeUrlButton: document.getElementById("writeUrlButton"),
   writeTextButton: document.getElementById("writeTextButton"),
   searchButton: document.getElementById("searchButton"),
@@ -57,6 +59,7 @@ init();
 
 function init() {
   els.sheetUrlInput.value = localStorage.getItem(SHEET_URL_KEY) || "";
+  els.inspectorInput.value = localStorage.getItem(INSPECTOR_KEY) || "";
 
   if (!("NDEFReader" in window)) {
     els.nfcHint.textContent = "NFC Scan geht nur in Chrome auf Android. Manuelle Suche geht überall.";
@@ -79,6 +82,7 @@ function init() {
   els.writeTextButton.addEventListener("click", () => writeNfc("text"));
   els.copyUrlButton.addEventListener("click", copyCurrentUrl);
   els.searchButton.addEventListener("click", () => findAndShow(els.tagInput.value));
+  els.inspectorInput.addEventListener("input", () => localStorage.setItem(INSPECTOR_KEY, els.inspectorInput.value.trim()));
   els.tagInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") findAndShow(els.tagInput.value);
   });
@@ -410,6 +414,7 @@ function logWalkCheck(entry) {
   const row = {
     time: now.toISOString(),
     localTime: now.toLocaleString("de-DE"),
+    inspector: els.inspectorInput.value.trim(),
     source: entry.source || "Manuell",
     tagId: normalizeTag(entry.tagId),
     status: entry.status || "Unbekannt",
@@ -439,7 +444,7 @@ function renderWalkLog() {
     item.innerHTML = `
       <strong>${escapeHtml(row.tagId || "-")}</strong>
       <span>${escapeHtml(row.status || "-")}</span>
-      <small>${escapeHtml(row.localTime || "-")} · ${escapeHtml(row.source || "-")}</small>
+      <small>${escapeHtml(row.localTime || "-")} · ${escapeHtml(row.source || "-")} · ${escapeHtml(row.inspector || "Ohne Prüfer")}</small>
       <small>${escapeHtml(row.part || "-")} · ${escapeHtml(row.lab || "-")} · ${escapeHtml(row.place || "-")}</small>
     `;
     els.walkLogList.appendChild(item);
@@ -448,9 +453,10 @@ function renderWalkLog() {
 
 function buildWalkLogCsv() {
   const rows = [
-    ["Zeit", "Quelle", "Tag_ID", "Ergebnis", "Bauteil", "NaechstePruefung", "Labor", "Ort"],
+    ["Zeit", "Pruefer", "Quelle", "Tag_ID", "Ergebnis", "Bauteil", "NaechstePruefung", "Labor", "Ort"],
     ...state.walkLog.map((row) => [
       row.localTime,
+      row.inspector || "",
       row.source,
       row.tagId,
       row.status,
@@ -474,7 +480,7 @@ function downloadWalkLog() {
     return;
   }
 
-  const blob = new Blob([buildWalkLogCsv()], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob([`\uFEFF${buildWalkLogCsv()}`], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
