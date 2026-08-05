@@ -116,7 +116,11 @@ async function loadFromSheet() {
     state.devices = devices;
     persist();
     renderList();
-    showDevice(state.devices[0]);
+    if (state.currentTag) {
+      findAndShow(state.currentTag);
+    } else {
+      showDevice(state.devices[0]);
+    }
     els.nfcHint.textContent = `Sheet geladen: ${devices.length} Geräte.`;
   } catch (error) {
     showUnknown("Sheet-Fehler", "Nicht geladen", error.message || "CSV konnte nicht gelesen werden.");
