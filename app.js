@@ -1,5 +1,6 @@
 ﻿const STORAGE_KEY = "dguv-nfc-devices-v1";
 const SHEET_URL_KEY = "dguv-nfc-sheet-url-v1";
+const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
 
 const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
@@ -10,6 +11,7 @@ const DEFAULT_DEVICES = [
 
 const state = {
   devices: loadDevices(),
+  walkLog: loadWalkLog(),
   currentTag: "",
 };
 
@@ -44,6 +46,11 @@ const els = {
   exportButton: document.getElementById("exportButton"),
   importInput: document.getElementById("importInput"),
   deviceList: document.getElementById("deviceList"),
+  walkLogCount: document.getElementById("walkLogCount"),
+  walkLogList: document.getElementById("walkLogList"),
+  downloadLogButton: document.getElementById("downloadLogButton"),
+  emailLogButton: document.getElementById("emailLogButton"),
+  clearLogButton: document.getElementById("clearLogButton"),
 };
 
 init();
@@ -81,7 +88,11 @@ function init() {
   els.addDemoButton.addEventListener("click", addDemoData);
   els.exportButton.addEventListener("click", exportJson);
   els.importInput.addEventListener("change", importJson);
+  els.downloadLogButton.addEventListener("click", downloadWalkLog);
+  els.emailLogButton.addEventListener("click", emailWalkLog);
+  els.clearLogButton.addEventListener("click", clearWalkLog);
   renderList();
+  renderWalkLog();
 
   if (els.sheetUrlInput.value) {
     loadFromSheet();
@@ -190,7 +201,7 @@ async function scanNfc() {
     reader.onreading = (event) => {
       const text = readNdefText(event);
       const fallback = event.serialNumber || "";
-      findAndShow(text || fallback);
+      findAndShow(text || fallback, "NFC");
     };
 
     reader.onerror = () => {
@@ -229,7 +240,7 @@ function normalizeKnownTagPrefix(tag) {
   return match ? match[1] : tag;
 }
 
-function findAndShow(input) {
+function findAndShow(input, source = "Manuell") {
   let tag = normalizeTag(input);
   els.tagInput.value = tag;
   state.currentTag = tag;
@@ -257,9 +268,11 @@ function findAndShow(input) {
   if (!device) {
     showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Keine Daten für ${tag}` : "Keine Tag-ID eingegeben.");
     setDetails({ tagId: tag });
+    if (tag) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
     return;
   }
   showDevice(device);
+  logWalkCheck({ ...device, status: getStatusLabel(getCheckStatus(device.nextCheck)), source });
 }
 
 function showDevice(device) {
@@ -312,6 +325,13 @@ function getCheckStatus(dateValue) {
   if (diffDays < 0) return "invalid";
   if (diffDays <= 30) return "soon";
   return "valid";
+}
+
+function getStatusLabel(status) {
+  if (status === "valid") return "Geprüft und iO";
+  if (status === "soon") return "Bald prüfen";
+  if (status === "invalid") return "Dringend Prüfung veranlassen";
+  return "Unbekannt";
 }
 
 function formatDate(dateValue) {
@@ -383,6 +403,101 @@ function renderList() {
       }
     });
   });
+}
+
+function logWalkCheck(entry) {
+  const now = new Date();
+  const row = {
+    time: now.toISOString(),
+    localTime: now.toLocaleString("de-DE"),
+    source: entry.source || "Manuell",
+    tagId: normalizeTag(entry.tagId),
+    status: entry.status || "Unbekannt",
+    part: entry.part || "",
+    nextCheck: entry.nextCheck || "",
+    lab: entry.lab || "",
+    place: entry.place || "",
+  };
+
+  state.walkLog = [row, ...state.walkLog].slice(0, 500);
+  persistWalkLog();
+  renderWalkLog();
+}
+
+function renderWalkLog() {
+  els.walkLogCount.textContent = `${state.walkLog.length} Prüfungen`;
+  els.walkLogList.innerHTML = "";
+
+  if (!state.walkLog.length) {
+    els.walkLogList.innerHTML = `<p class="hint">Noch kein Rundgang-Protokoll. Scannen oder suchen speichert hier automatisch.</p>`;
+    return;
+  }
+
+  for (const row of state.walkLog.slice(0, 12)) {
+    const item = document.createElement("div");
+    item.className = "walklog-row";
+    item.innerHTML = `
+      <strong>${escapeHtml(row.tagId || "-")}</strong>
+      <span>${escapeHtml(row.status || "-")}</span>
+      <small>${escapeHtml(row.localTime || "-")} · ${escapeHtml(row.source || "-")}</small>
+      <small>${escapeHtml(row.part || "-")} · ${escapeHtml(row.lab || "-")} · ${escapeHtml(row.place || "-")}</small>
+    `;
+    els.walkLogList.appendChild(item);
+  }
+}
+
+function buildWalkLogCsv() {
+  const rows = [
+    ["Zeit", "Quelle", "Tag_ID", "Ergebnis", "Bauteil", "NaechstePruefung", "Labor", "Ort"],
+    ...state.walkLog.map((row) => [
+      row.localTime,
+      row.source,
+      row.tagId,
+      row.status,
+      row.part,
+      row.nextCheck ? formatDate(row.nextCheck) : "",
+      row.lab,
+      row.place,
+    ]),
+  ];
+
+  return rows.map((row) => row.map(csvCell).join(";")).join("\r\n");
+}
+
+function csvCell(value) {
+  return `"${String(value || "").replace(/"/g, '""')}"`;
+}
+
+function downloadWalkLog() {
+  if (!state.walkLog.length) {
+    els.nfcHint.textContent = "Noch kein Protokoll vorhanden.";
+    return;
+  }
+
+  const blob = new Blob([buildWalkLogCsv()], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `dguv-laborrundgang-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function emailWalkLog() {
+  if (!state.walkLog.length) {
+    els.nfcHint.textContent = "Noch kein Protokoll vorhanden.";
+    return;
+  }
+
+  const subject = encodeURIComponent(`DGUV Laborrundgang ${new Date().toLocaleDateString("de-DE")}`);
+  const body = encodeURIComponent(buildWalkLogCsv());
+  location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function clearWalkLog() {
+  state.walkLog = [];
+  persistWalkLog();
+  renderWalkLog();
 }
 
 function exportJson() {
@@ -522,8 +637,22 @@ function loadDevices() {
   }
 }
 
+function loadWalkLog() {
+  try {
+    const raw = localStorage.getItem(WALK_LOG_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.devices));
+}
+
+function persistWalkLog() {
+  localStorage.setItem(WALK_LOG_KEY, JSON.stringify(state.walkLog));
 }
 
 function escapeHtml(value) {

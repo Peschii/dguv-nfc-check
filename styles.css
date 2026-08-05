@@ -83,6 +83,7 @@ h1 {
 .controls,
 .details,
 .inventory,
+.walklog,
 .tomorrow {
   margin-top: 14px;
   padding: 14px;
@@ -245,6 +246,32 @@ form {
   gap: 8px;
 }
 
+.walklog-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.walklog-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 12px;
+  padding: 10px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+}
+
+.walklog-row strong,
+.walklog-row span {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.walklog-row small {
+  color: #aab8c8;
+  overflow-wrap: anywhere;
+}
+
 .tomorrow ol {
   margin: 12px 0 0;
   padding-left: 22px;
@@ -321,6 +348,7 @@ form {
   .write-actions,
   form,
   dl,
+  .walklog-row,
   .device-row {
     grid-template-columns: 1fr;
   }

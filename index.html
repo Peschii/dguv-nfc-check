@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=7" />
   </head>
   <body>
     <main class="app-shell">
@@ -59,6 +59,19 @@
         <button class="copy-url" id="copyUrlButton" type="button">Tag-URL kopieren</button>
       </section>
 
+      <section class="walklog" aria-label="Laborrundgang Protokoll">
+        <div class="section-title">
+          <h2>Laborrundgang</h2>
+          <span id="walkLogCount">0 Prüfungen</span>
+        </div>
+        <div class="data-actions">
+          <button id="downloadLogButton" type="button">CSV herunterladen</button>
+          <button id="emailLogButton" type="button">Per E-Mail senden</button>
+          <button id="clearLogButton" type="button">Protokoll löschen</button>
+        </div>
+        <div class="walklog-list" id="walkLogList"></div>
+      </section>
+
       <section class="inventory" aria-label="Geräte verwalten">
         <div class="section-title">
           <h2>Geräte</h2>
@@ -102,7 +115,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=7"></script>
   </body>
 </html>
 
