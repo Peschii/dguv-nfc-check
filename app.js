@@ -267,7 +267,12 @@ function showDevice(device) {
   const status = getCheckStatus(device.nextCheck);
   els.statusPanel.className = `status-panel ${status}`;
   els.statusKicker.textContent = device.tagId;
-  els.statusText.textContent = status === "valid" ? "GETESTET UND GUT" : status === "soon" ? "BALD TESTEN" : "MUSS GETESTET WERDEN";
+  els.statusText.textContent =
+    status === "valid"
+      ? "Geprüft und iO"
+      : status === "soon"
+        ? "Bald prüfen"
+        : "Dringend Prüfung veranlassen";
   els.statusSubline.textContent =
     status === "valid"
       ? `Nächste Prüfung: ${formatDate(device.nextCheck)}`

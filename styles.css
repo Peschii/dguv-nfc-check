@@ -1,8 +1,8 @@
 :root {
   color-scheme: light dark;
   font-family: Arial, Helvetica, sans-serif;
-  background: #111827;
-  color: #f8fafc;
+  background: #101722;
+  color: #eef4f8;
 }
 
 * {
@@ -12,7 +12,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #111827;
+  background: #101722;
 }
 
 button,
@@ -86,9 +86,9 @@ h1 {
 .tomorrow {
   margin-top: 14px;
   padding: 14px;
-  background: #f8fafc;
-  color: #111827;
-  border: 1px solid #d1d5db;
+  background: #182232;
+  color: #eef4f8;
+  border: 1px solid #2d3b4f;
 }
 
 .primary,
@@ -128,9 +128,9 @@ form {
 
 .write-actions button {
   min-height: 48px;
-  border: 1px solid #334155;
-  background: #e2e8f0;
-  color: #111827;
+  border: 1px solid #3d4d63;
+  background: #223044;
+  color: #eef4f8;
   font-weight: 700;
   padding: 0 12px;
 }
@@ -138,15 +138,15 @@ form {
 input {
   width: 100%;
   min-height: 48px;
-  border: 1px solid #9ca3af;
+  border: 1px solid #40516a;
   padding: 0 12px;
-  background: white;
-  color: #111827;
+  background: #101722;
+  color: #eef4f8;
 }
 
 .hint {
   margin: 10px 0 0;
-  color: #475569;
+  color: #aab8c8;
 }
 
 dl {
@@ -161,7 +161,7 @@ dl .wide {
 }
 
 dt {
-  color: #64748b;
+  color: #aab8c8;
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -178,16 +178,16 @@ dd {
   font-size: 15px;
   line-height: 1.35;
   font-weight: 700;
-  color: #0f172a;
+  color: #dce8f3;
 }
 
 .copy-url {
   width: 100%;
   min-height: 44px;
   margin-top: 12px;
-  border: 1px solid #334155;
-  background: #e2e8f0;
-  color: #111827;
+  border: 1px solid #3d4d63;
+  background: #223044;
+  color: #eef4f8;
   font-weight: 700;
 }
 
@@ -202,8 +202,8 @@ dd {
 .sheet-config {
   margin-top: 12px;
   padding: 12px;
-  border: 1px solid #cbd5e1;
-  background: #f1f5f9;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
 }
 
 .sheet-config label {
@@ -230,8 +230,8 @@ form {
   display: inline-flex;
   align-items: center;
   padding: 0 16px;
-  background: #e2e8f0;
-  color: #111827;
+  background: #223044;
+  color: #eef4f8;
   font-weight: 700;
 }
 
@@ -260,8 +260,8 @@ form {
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border: 1px solid #cbd5e1;
-  background: white;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
 }
 
 .badge {
@@ -295,7 +295,7 @@ form {
 }
 
 .row-main span {
-  color: #64748b;
+  color: #aab8c8;
   margin-top: 2px;
 }
 
@@ -307,9 +307,9 @@ form {
 .row-actions button {
   min-height: 38px;
   padding: 0 10px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  color: #111827;
+  border: 1px solid #3d4d63;
+  background: #223044;
+  color: #eef4f8;
 }
 
 @media (max-width: 720px) {
