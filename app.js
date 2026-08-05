@@ -224,11 +224,28 @@ function normalizeTag(input) {
   return pipe.trim().toUpperCase();
 }
 
+function normalizeKnownTagPrefix(tag) {
+  const match = String(tag || "").trim().toUpperCase().match(/^([A-Z]+-\d{3,})(?:[A-Z]+)$/);
+  return match ? match[1] : tag;
+}
+
 function findAndShow(input) {
-  const tag = normalizeTag(input);
+  let tag = normalizeTag(input);
   els.tagInput.value = tag;
   state.currentTag = tag;
   let device = state.devices.find((item) => normalizeTag(item.tagId) === tag);
+  if (!device) {
+    const baseTag = normalizeKnownTagPrefix(tag);
+    if (baseTag !== tag) {
+      const baseDevice = state.devices.find((item) => normalizeTag(item.tagId) === baseTag);
+      if (baseDevice) {
+        tag = baseTag;
+        els.tagInput.value = tag;
+        state.currentTag = tag;
+        device = baseDevice;
+      }
+    }
+  }
   if (!device) {
     device = DEFAULT_DEVICES.find((item) => normalizeTag(item.tagId) === tag);
     if (device) {
