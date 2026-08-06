@@ -1,0 +1,1753 @@
+﻿<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>DGUV NFC Check</title>
+    <style>
+:root {
+  color-scheme: light dark;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #101722;
+  color: #eef4f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #101722;
+}
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.mode-tabs button {
+  min-height: 52px;
+  border: 1px solid #3d4d63;
+  background: #182232;
+  color: #aab8c8;
+  font-weight: 800;
+}
+
+.mode-tabs button.active {
+  background: #eef4f8;
+  color: #101722;
+}
+
+.view-hidden {
+  display: none !important;
+}
+
+button,
+input,
+select,
+label {
+  font: inherit;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  color: #aab8c8;
+  font-weight: 800;
+}
+
+.app-shell {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.status-panel {
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  background: #334155;
+  color: white;
+}
+
+.status-panel.valid {
+  background: linear-gradient(135deg, #0b7f37 0%, #13b85a 52%, #83f28f 100%);
+}
+
+.status-panel.invalid {
+  background: linear-gradient(135deg, #8f1118 0%, #d9232e 55%, #ff6b4a 100%);
+}
+
+.status-panel.soon {
+  background: linear-gradient(135deg, #b98000 0%, #ffd12d 58%, #fff176 100%);
+  color: #1f1600;
+}
+
+.status-panel.unknown {
+  background: linear-gradient(135deg, #ff1493 0%, #ff4fd8 52%, #ffb3f1 100%);
+  color: #260014;
+}
+
+.status-kicker {
+  font-size: 16px;
+  text-transform: uppercase;
+  font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 12px 0 10px;
+  font-size: clamp(42px, 12vw, 86px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.status-panel p {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.controls,
+.details,
+.inventory,
+.writer-page,
+.warnings,
+.walklog,
+.tomorrow {
+  margin-top: 14px;
+  padding: 14px;
+  background: #182232;
+  color: #eef4f8;
+  border: 1px solid #2d3b4f;
+}
+
+.primary,
+form button,
+.manual-search button,
+.data-actions button,
+.section-title button {
+  min-height: 48px;
+  border: 0;
+  background: #0f172a;
+  color: white;
+  font-weight: 700;
+  padding: 0 16px;
+}
+
+.primary {
+  width: 100%;
+  min-height: 64px;
+  font-size: 24px;
+}
+
+.manual-search,
+.write-actions,
+.inspector-field,
+form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inspector-field {
+  margin-top: 0;
+}
+
+.manual-search {
+  grid-template-columns: 1fr auto;
+}
+
+.write-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.write-actions button {
+  min-height: 48px;
+  border: 1px solid #3d4d63;
+  background: #223044;
+  color: #eef4f8;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #40516a;
+  padding: 0 12px;
+  background: #101722;
+  color: #eef4f8;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: #aab8c8;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+dl .wide {
+  grid-column: 1 / -1;
+}
+
+dt {
+  color: #aab8c8;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.url-value {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #dce8f3;
+}
+
+.copy-url {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 1px solid #3d4d63;
+  background: #223044;
+  color: #eef4f8;
+  font-weight: 700;
+}
+
+.section-title,
+.data-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sheet-config {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+}
+
+.sheet-config label {
+  display: block;
+  font-weight: 700;
+}
+
+h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+form {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+}
+
+.writer-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.writer-submit {
+  grid-column: 1 / -1;
+}
+
+.prepared-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+}
+
+.prepared-card dd {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.data-actions {
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+
+.import-label {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #223044;
+  color: #eef4f8;
+  font-weight: 700;
+}
+
+.import-label input {
+  display: none;
+}
+
+.device-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.walklog-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.warning-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.warning-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 12px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid #2d3b4f;
+  border-left: 8px solid #3d4d63;
+  background: #141d2a;
+  color: #eef4f8;
+}
+
+.warning-row.invalid {
+  border-left-color: #ff3b45;
+}
+
+.warning-row.soon {
+  border-left-color: #ffd12d;
+}
+
+.warning-row.unknown {
+  border-left-color: #ff1493;
+}
+
+.warning-row strong,
+.warning-row span {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.warning-row small {
+  grid-column: 1 / -1;
+  color: #aab8c8;
+  overflow-wrap: anywhere;
+}
+
+.walklog-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 12px;
+  padding: 10px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+}
+
+.walklog-row strong,
+.walklog-row span {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.walklog-row small {
+  color: #aab8c8;
+  overflow-wrap: anywhere;
+}
+
+.tomorrow ol {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+
+.tomorrow li {
+  margin: 8px 0;
+}
+
+.device-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+}
+
+.badge {
+  padding: 6px 8px;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+}
+
+.badge.valid {
+  background: #0b8f46;
+}
+
+.badge.invalid {
+  background: #c9252d;
+}
+
+.badge.soon {
+  background: #d9a21b;
+  color: #1f1600;
+}
+
+.badge.unknown {
+  background: #ff1493;
+  color: #260014;
+}
+
+.row-main strong,
+.row-main span {
+  display: block;
+}
+
+.row-main span {
+  color: #aab8c8;
+  margin-top: 2px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.row-actions button {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #3d4d63;
+  background: #223044;
+  color: #eef4f8;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .manual-search,
+  .write-actions,
+  form,
+  .writer-form,
+  dl,
+  .warning-row,
+  .walklog-row,
+  .device-row {
+    grid-template-columns: 1fr;
+  }
+
+  .status-panel {
+    min-height: 190px;
+  }
+
+  dd {
+    font-size: 21px;
+  }
+
+  .row-actions {
+    justify-content: stretch;
+  }
+
+  .row-actions button {
+    flex: 1;
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <nav class="mode-tabs" aria-label="Modus">
+        <button class="active" id="checkModeButton" type="button">Prüfen</button>
+        <button id="writeModeButton" type="button">Tags beschreiben</button>
+      </nav>
+
+      <section class="writer-page view-hidden" id="writerPage" aria-label="Tags beschreiben">
+        <div class="section-title">
+          <h2>Tags beschreiben</h2>
+          <span id="writerCounter">Bereit</span>
+        </div>
+        <form class="writer-form" id="writerForm">
+          <label>
+            Prüfer
+            <select id="writerInspector">
+              <option value="Peschel">Peschel</option>
+              <option value="Kittelmann">Kittelmann</option>
+            </select>
+          </label>
+          <label>
+            Nächste Prüfung
+            <input id="writerDate" type="date" required />
+          </label>
+          <label>
+            Labor
+            <input id="writerLab" placeholder="Labor 1" required />
+          </label>
+          <label>
+            Ort / Standort
+            <input id="writerPlace" placeholder="Tisch 1" required />
+          </label>
+          <label>
+            Tag-ID
+            <input id="writerTag" placeholder="EL-005" required />
+          </label>
+          <label>
+            Bauteil
+            <input id="writerPart" placeholder="Gerätename" required />
+          </label>
+          <button class="primary writer-submit" id="writePreparedButton" type="submit">Gerät speichern und NFC schreiben</button>
+        </form>
+        <div class="write-actions">
+          <button id="connectUsbButton" type="button">USB-NFC verbinden</button>
+          <button id="savePreparedButton" type="button">Nur Gerät speichern</button>
+          <button id="nextPreparedButton" type="button">Nächstes Gerät</button>
+        </div>
+        <div class="prepared-card">
+          <dt>Wird geschrieben</dt>
+          <dd id="writerPreview">-</dd>
+        </div>
+        <p class="hint" id="writerHint">Wiederkehrende Felder bleiben gespeichert. Nach dem Schreiben wird die Tag-ID hochgezählt und das Bauteil geleert.</p>
+      </section>
+
+      <section class="status-panel unknown check-view" id="statusPanel">
+        <div class="status-kicker" id="statusKicker">Bereit</div>
+        <h1 id="statusText">DGUV NFC Check</h1>
+        <p id="statusSubline">NFC scannen oder Tag-ID eingeben.</p>
+      </section>
+
+      <section class="controls check-view" aria-label="Scan und Suche">
+        <label class="inspector-field" for="inspectorInput">
+          Prüfer
+          <select id="inspectorInput">
+            <option value="Peschel">Peschel</option>
+            <option value="Kittelmann">Kittelmann</option>
+          </select>
+        </label>
+        <button class="primary" id="scanButton" type="button">NFC scannen</button>
+        <div class="manual-search">
+          <input id="tagInput" autocomplete="off" placeholder="EL-001 oder ELEKTRO|EL-001" />
+          <button id="searchButton" type="button">Suchen</button>
+        </div>
+        <div class="write-actions">
+          <button id="writeUrlButton" type="button">NFC-Tag mit URL beschreiben</button>
+          <button id="writeTextButton" type="button">NFC-Tag mit ID beschreiben</button>
+        </div>
+        <p class="hint" id="nfcHint">Android Chrome benötigt HTTPS und aktiviertes NFC.</p>
+      </section>
+
+      <section class="details check-view" aria-label="Gerätedaten">
+        <dl>
+          <div>
+            <dt>Bauteil</dt>
+            <dd id="partValue">-</dd>
+          </div>
+          <div>
+            <dt>Nächste Prüfung</dt>
+            <dd id="dateValue">-</dd>
+          </div>
+          <div>
+            <dt>Labor</dt>
+            <dd id="labValue">-</dd>
+          </div>
+          <div>
+            <dt>Ort</dt>
+            <dd id="placeValue">-</dd>
+          </div>
+          <div>
+            <dt>Tag-ID</dt>
+            <dd id="tagValue">-</dd>
+          </div>
+          <div class="wide">
+            <dt>Tag-URL</dt>
+            <dd class="url-value" id="urlValue">-</dd>
+          </div>
+        </dl>
+        <button class="copy-url" id="copyUrlButton" type="button">Tag-URL kopieren</button>
+      </section>
+
+      <section class="walklog check-view" aria-label="Laborrundgang Protokoll">
+        <div class="section-title">
+          <h2>Laborrundgang</h2>
+          <span id="walkLogCount">0 Prüfungen</span>
+        </div>
+        <div class="data-actions">
+          <button id="downloadLogButton" type="button">CSV herunterladen</button>
+          <button id="emailLogButton" type="button">Per E-Mail senden</button>
+          <button id="clearLogButton" type="button">Protokoll löschen</button>
+        </div>
+        <div class="walklog-list" id="walkLogList"></div>
+      </section>
+
+      <section class="warnings check-view" aria-label="Prüfwarnungen">
+        <div class="section-title">
+          <h2>Prüfwarnungen</h2>
+          <span id="warningCount">0 Geräte</span>
+        </div>
+        <div class="warning-list" id="warningList"></div>
+      </section>
+
+      <section class="inventory check-view" aria-label="Geräte verwalten">
+        <div class="section-title">
+          <h2>Geräte</h2>
+          <button id="reloadSheetButton" type="button">Sheet neu laden</button>
+        </div>
+        <div class="sheet-config">
+          <label for="sheetUrlInput">Google-Sheet-CSV-URL</label>
+          <div class="manual-search">
+            <input id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv" />
+            <button id="saveSheetUrlButton" type="button">Merken</button>
+          </div>
+          <p class="hint">Sheet im Web als CSV veröffentlichen. Ohne URL nutzt die App lokale Daten.</p>
+        </div>
+        <form id="deviceForm">
+          <input id="formTag" placeholder="Tag-ID, z. B. EL-003" required />
+          <input id="formPart" placeholder="Bauteil" required />
+          <input id="formDate" type="date" required />
+          <input id="formLab" placeholder="Labor" required />
+          <input id="formPlace" placeholder="Ort / Standort" required />
+          <button type="submit">Speichern</button>
+        </form>
+        <div class="data-actions">
+          <button id="addDemoButton" type="button">Testdaten</button>
+          <button id="exportButton" type="button">Export JSON</button>
+          <label class="import-label">
+            Import JSON
+            <input id="importInput" type="file" accept="application/json" />
+          </label>
+        </div>
+        <div class="device-list" id="deviceList"></div>
+      </section>
+
+      <section class="tomorrow check-view" aria-label="Morgen testen">
+        <h2>Morgen testen</h2>
+        <ol>
+          <li>App über HTTPS auf dem Android-Handy öffnen.</li>
+          <li>Testdaten laden oder echte Geräte speichern.</li>
+          <li>Gerät anzeigen und <strong>NFC-Tag mit URL beschreiben</strong> drücken.</li>
+          <li>Leeren NTAG213-Sticker ans Handy halten.</li>
+          <li>Danach Tag antippen: Browser öffnet direkt rot/grün.</li>
+        </ol>
+      </section>
+    </main>
+    <script>
+const STORAGE_KEY = "dguv-nfc-devices-v1";
+const SHEET_URL_KEY = "dguv-nfc-sheet-url-v1";
+const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
+const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
+const WRITER_KEY = "dguv-nfc-writer-v1";
+
+const DEFAULT_DEVICES = [
+  { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
+  { tagId: "EL-002", part: "Altes Kabel", nextCheck: "2025-01-01", lab: "Labor 1", place: "Schrank A" },
+  { tagId: "EL-003", part: "Steckdosenleiste", nextCheck: "2026-09-30", lab: "Labor 2", place: "Werkbank links" },
+  { tagId: "EL-004", part: "Gelbtest Netzteil", nextCheck: "2026-08-20", lab: "Labor 1", place: "Testplatz Gelb" },
+];
+
+const state = {
+  devices: loadDevices(),
+  walkLog: loadWalkLog(),
+  currentTag: "",
+  writerCount: 0,
+};
+
+const els = {
+  checkModeButton: document.getElementById("checkModeButton"),
+  writeModeButton: document.getElementById("writeModeButton"),
+  writerPage: document.getElementById("writerPage"),
+  checkViews: document.querySelectorAll(".check-view"),
+  statusPanel: document.getElementById("statusPanel"),
+  statusKicker: document.getElementById("statusKicker"),
+  statusText: document.getElementById("statusText"),
+  statusSubline: document.getElementById("statusSubline"),
+  scanButton: document.getElementById("scanButton"),
+  inspectorInput: document.getElementById("inspectorInput"),
+  writeUrlButton: document.getElementById("writeUrlButton"),
+  writeTextButton: document.getElementById("writeTextButton"),
+  searchButton: document.getElementById("searchButton"),
+  tagInput: document.getElementById("tagInput"),
+  nfcHint: document.getElementById("nfcHint"),
+  partValue: document.getElementById("partValue"),
+  dateValue: document.getElementById("dateValue"),
+  labValue: document.getElementById("labValue"),
+  placeValue: document.getElementById("placeValue"),
+  tagValue: document.getElementById("tagValue"),
+  urlValue: document.getElementById("urlValue"),
+  copyUrlButton: document.getElementById("copyUrlButton"),
+  form: document.getElementById("deviceForm"),
+  formTag: document.getElementById("formTag"),
+  formPart: document.getElementById("formPart"),
+  formDate: document.getElementById("formDate"),
+  formLab: document.getElementById("formLab"),
+  formPlace: document.getElementById("formPlace"),
+  sheetUrlInput: document.getElementById("sheetUrlInput"),
+  saveSheetUrlButton: document.getElementById("saveSheetUrlButton"),
+  reloadSheetButton: document.getElementById("reloadSheetButton"),
+  addDemoButton: document.getElementById("addDemoButton"),
+  exportButton: document.getElementById("exportButton"),
+  importInput: document.getElementById("importInput"),
+  deviceList: document.getElementById("deviceList"),
+  warningCount: document.getElementById("warningCount"),
+  warningList: document.getElementById("warningList"),
+  walkLogCount: document.getElementById("walkLogCount"),
+  walkLogList: document.getElementById("walkLogList"),
+  downloadLogButton: document.getElementById("downloadLogButton"),
+  emailLogButton: document.getElementById("emailLogButton"),
+  clearLogButton: document.getElementById("clearLogButton"),
+  writerForm: document.getElementById("writerForm"),
+  writerInspector: document.getElementById("writerInspector"),
+  writerDate: document.getElementById("writerDate"),
+  writerLab: document.getElementById("writerLab"),
+  writerPlace: document.getElementById("writerPlace"),
+  writerTag: document.getElementById("writerTag"),
+  writerPart: document.getElementById("writerPart"),
+  connectUsbButton: document.getElementById("connectUsbButton"),
+  writePreparedButton: document.getElementById("writePreparedButton"),
+  savePreparedButton: document.getElementById("savePreparedButton"),
+  nextPreparedButton: document.getElementById("nextPreparedButton"),
+  writerCounter: document.getElementById("writerCounter"),
+  writerPreview: document.getElementById("writerPreview"),
+  writerHint: document.getElementById("writerHint"),
+};
+
+let serialPort = null;
+let serialReader = null;
+let serialWriter = null;
+
+init();
+
+function init() {
+  els.sheetUrlInput.value = localStorage.getItem(SHEET_URL_KEY) || "";
+  els.inspectorInput.value = localStorage.getItem(INSPECTOR_KEY) || "";
+  loadWriterDefaults();
+
+  if (!("NDEFReader" in window)) {
+    els.nfcHint.textContent = "NFC Scan geht nur in Chrome auf Android. Manuelle Suche geht überall.";
+    els.scanButton.disabled = true;
+    els.writeUrlButton.disabled = true;
+    els.writeTextButton.disabled = true;
+  }
+
+  if (!("serial" in navigator)) {
+    els.connectUsbButton.disabled = true;
+    els.connectUsbButton.textContent = "USB-NFC nicht unterstützt";
+  }
+
+  const idFromUrl = new URLSearchParams(location.search).get("id");
+  if (idFromUrl) {
+    findAndShow(idFromUrl);
+  } else {
+    showStart();
+  }
+
+  els.scanButton.addEventListener("click", scanNfc);
+  els.checkModeButton.addEventListener("click", () => setMode("check"));
+  els.writeModeButton.addEventListener("click", () => setMode("write"));
+  els.writeUrlButton.addEventListener("click", () => writeNfc("url"));
+  els.writeTextButton.addEventListener("click", () => writeNfc("text"));
+  els.copyUrlButton.addEventListener("click", copyCurrentUrl);
+  els.searchButton.addEventListener("click", () => findAndShow(els.tagInput.value));
+  els.inspectorInput.addEventListener("input", () => {
+    localStorage.setItem(INSPECTOR_KEY, els.inspectorInput.value.trim());
+    renderWarnings();
+  });
+  els.tagInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") findAndShow(els.tagInput.value);
+  });
+  els.form.addEventListener("submit", saveDeviceFromForm);
+  els.saveSheetUrlButton.addEventListener("click", saveSheetUrl);
+  els.reloadSheetButton.addEventListener("click", loadFromSheet);
+  els.addDemoButton.addEventListener("click", addDemoData);
+  els.exportButton.addEventListener("click", exportJson);
+  els.importInput.addEventListener("change", importJson);
+  els.downloadLogButton.addEventListener("click", downloadWalkLog);
+  els.emailLogButton.addEventListener("click", emailWalkLog);
+  els.clearLogButton.addEventListener("click", clearWalkLog);
+  els.connectUsbButton.addEventListener("click", connectUsbNfc);
+  els.writerForm.addEventListener("submit", writePreparedTag);
+  els.savePreparedButton.addEventListener("click", () => savePreparedDevice(true));
+  els.nextPreparedButton.addEventListener("click", nextPreparedDevice);
+  [els.writerInspector, els.writerDate, els.writerLab, els.writerPlace, els.writerTag, els.writerPart].forEach((input) => {
+    input.addEventListener("input", () => {
+      saveWriterDefaults();
+      renderWriterPreview();
+    });
+  });
+  renderList();
+  renderWalkLog();
+  renderWarnings();
+  renderWriterPreview();
+
+  if (els.sheetUrlInput.value) {
+    loadFromSheet();
+  }
+}
+
+function setMode(mode) {
+  const writing = mode === "write";
+  els.writerPage.classList.toggle("view-hidden", !writing);
+  els.checkViews.forEach((section) => section.classList.toggle("view-hidden", writing));
+  els.writeModeButton.classList.toggle("active", writing);
+  els.checkModeButton.classList.toggle("active", !writing);
+  if (writing) els.writerPart.focus();
+}
+
+function saveSheetUrl() {
+  const url = els.sheetUrlInput.value.trim();
+  if (!url) {
+    localStorage.removeItem(SHEET_URL_KEY);
+    els.nfcHint.textContent = "Sheet-URL entfernt. App nutzt lokale Daten.";
+    return;
+  }
+  localStorage.setItem(SHEET_URL_KEY, url);
+  els.nfcHint.textContent = "Sheet-URL gespeichert.";
+  loadFromSheet();
+}
+
+async function loadFromSheet() {
+  const url = els.sheetUrlInput.value.trim() || localStorage.getItem(SHEET_URL_KEY) || "";
+  if (!url) {
+    els.nfcHint.textContent = "Keine Sheet-URL eingetragen.";
+    return;
+  }
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const csv = await response.text();
+    const devices = parseDevicesCsv(csv);
+    if (!devices.length) throw new Error("Keine gültigen Geräte im Sheet gefunden.");
+    state.devices = devices;
+    persist();
+    renderList();
+    renderWarnings();
+    if (state.currentTag) {
+      findAndShow(state.currentTag, "Anzeige", false);
+    } else {
+      showStart();
+    }
+    els.nfcHint.textContent = `Sheet geladen: ${devices.length} Geräte.`;
+  } catch (error) {
+    showUnknown("Sheet-Fehler", "Nicht geladen", error.message || "CSV konnte nicht gelesen werden.");
+  }
+}
+
+async function copyCurrentUrl() {
+  const tag = normalizeTag(state.currentTag || els.tagInput.value);
+  if (!tag) {
+    showUnknown("Keine ID", "Tag-ID fehlt", "Erst Gerät anzeigen oder ID eingeben.");
+    return;
+  }
+  const url = buildDeviceUrl(tag);
+  try {
+    await navigator.clipboard.writeText(url);
+    els.nfcHint.textContent = `Tag-URL kopiert: ${url}`;
+  } catch {
+    els.urlValue.textContent = url;
+    els.nfcHint.textContent = "Kopieren blockiert. URL steht im Feld Tag-URL.";
+  }
+}
+
+async function writeNfc(mode) {
+  if (!("NDEFReader" in window)) {
+    showUnknown("Kein NFC", "Nicht unterstützt", "Bitte Chrome auf Android verwenden.");
+    return;
+  }
+
+  const tag = normalizeTag(state.currentTag || els.tagInput.value);
+  if (!tag) {
+    showUnknown("Keine ID", "Tag-ID fehlt", "Erst Gerät anzeigen oder ID eingeben.");
+    return;
+  }
+
+  const payload =
+    mode === "url"
+      ? buildDeviceUrl(tag)
+      : `ELEKTRO|${tag}`;
+
+  try {
+    const writer = new NDEFReader();
+    await writer.write({
+      records: [
+        mode === "url"
+          ? { recordType: "url", data: payload }
+          : { recordType: "text", data: payload },
+      ],
+    });
+    els.nfcHint.textContent = `NFC-Tag geschrieben: ${payload}`;
+  } catch (error) {
+    showUnknown("Schreiben fehlgeschlagen", "NFC-Fehler", error.message || "Tag konnte nicht beschrieben werden.");
+  }
+}
+
+async function writePreparedTag(event) {
+  event.preventDefault();
+  const device = savePreparedDevice(false);
+  if (!device) return;
+
+  if (serialPort) {
+    await writePreparedTagUsb(device);
+    return;
+  }
+
+  if (!("NDEFReader" in window)) {
+    els.writerHint.textContent = "Kein USB-NFC verbunden. Gerät wurde gespeichert.";
+    return;
+  }
+
+  try {
+    const writer = new NDEFReader();
+    const payload = buildDeviceUrl(device.tagId);
+    await writer.write({ records: [{ recordType: "url", data: payload }] });
+    state.writerCount += 1;
+    els.writerCounter.textContent = `${state.writerCount} geschrieben`;
+    els.writerHint.textContent = `NFC geschrieben: ${payload}`;
+    nextPreparedDevice();
+  } catch (error) {
+    els.writerHint.textContent = error.message || "NFC konnte nicht beschrieben werden.";
+  }
+}
+
+async function connectUsbNfc() {
+  if (!("serial" in navigator)) {
+    els.writerHint.textContent = "USB-NFC geht in Chrome/Edge am PC über Web Serial.";
+    return;
+  }
+
+  try {
+    serialPort = await navigator.serial.requestPort();
+    await serialPort.open({ baudRate: 115200 });
+    serialReader = serialPort.readable.getReader();
+    serialWriter = serialPort.writable.getWriter();
+    await pn532Wakeup();
+    await pn532Command([0x14, 0x01, 0x14, 0x01]);
+    els.connectUsbButton.textContent = "USB-NFC verbunden";
+    els.writerHint.textContent = "PN532 verbunden. Tag auflegen und schreiben.";
+  } catch (error) {
+    serialPort = null;
+    els.writerHint.textContent = error.message || "USB-NFC konnte nicht verbunden werden.";
+  }
+}
+
+async function writePreparedTagUsb(device) {
+  try {
+    els.writerHint.textContent = "Tag auflegen...";
+    const target = await pn532FindTarget();
+    if (!target) {
+      els.writerHint.textContent = "Kein NFC-Tag gefunden.";
+      return;
+    }
+
+    await writeNtagUrl(target, buildDeviceUrl(device.tagId));
+    state.writerCount += 1;
+    els.writerCounter.textContent = `${state.writerCount} geschrieben`;
+    els.writerHint.textContent = `USB-NFC geschrieben: ${device.tagId}`;
+    nextPreparedDevice();
+  } catch (error) {
+    els.writerHint.textContent = error.message || "USB-Schreiben fehlgeschlagen.";
+  }
+}
+
+async function scanNfc() {
+  if (!("NDEFReader" in window)) {
+    showUnknown("Kein NFC", "Nicht unterstützt", "Bitte Chrome auf Android verwenden.");
+    return;
+  }
+
+  try {
+    const reader = new NDEFReader();
+    await reader.scan();
+    els.nfcHint.textContent = "Scanner aktiv. NFC-Tag an das Android-Handy halten.";
+    showUnknown("Scanner aktiv", "Tag halten", "Warte auf NFC...");
+
+    reader.onreading = (event) => {
+      const text = readNdefText(event);
+      const fallback = event.serialNumber || "";
+      findAndShow(text || fallback, "NFC");
+    };
+
+    reader.onerror = () => {
+      showUnknown("NFC-Fehler", "Scan abgebrochen", "Bitte erneut versuchen.");
+    };
+  } catch (error) {
+    showUnknown("NFC-Fehler", "Keine Freigabe", error.message || "Scan konnte nicht gestartet werden.");
+  }
+}
+
+function readNdefText(event) {
+  for (const record of event.message.records) {
+    if (record.recordType === "text") {
+      const decoder = new TextDecoder(record.encoding || "utf-8");
+      return decoder.decode(record.data);
+    }
+    if (record.recordType === "url") {
+      const decoder = new TextDecoder();
+      return decoder.decode(record.data);
+    }
+  }
+  return "";
+}
+
+function normalizeTag(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+  const urlId = raw.match(/[?&]id=([^&]+)/i);
+  if (urlId) return decodeURIComponent(urlId[1]).trim().toUpperCase();
+  const pipe = raw.includes("|") ? raw.split("|").pop() : raw;
+  return pipe.trim().toUpperCase();
+}
+
+function normalizeKnownTagPrefix(tag) {
+  const match = String(tag || "").trim().toUpperCase().match(/^([A-Z]+-\d{3,})(?:[A-Z]+)$/);
+  return match ? match[1] : tag;
+}
+
+function findAndShow(input, source = "Manuell", shouldLog = true) {
+  let tag = normalizeTag(input);
+  els.tagInput.value = tag;
+  state.currentTag = tag;
+  let device = state.devices.find((item) => normalizeTag(item.tagId) === tag);
+  if (!device) {
+    const baseTag = normalizeKnownTagPrefix(tag);
+    if (baseTag !== tag) {
+      const baseDevice = state.devices.find((item) => normalizeTag(item.tagId) === baseTag);
+      if (baseDevice) {
+        tag = baseTag;
+        els.tagInput.value = tag;
+        state.currentTag = tag;
+        device = baseDevice;
+      }
+    }
+  }
+  if (!device) {
+    device = DEFAULT_DEVICES.find((item) => normalizeTag(item.tagId) === tag);
+    if (device) {
+      state.devices.push(device);
+      persist();
+      renderList();
+    }
+  }
+  if (!device) {
+    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Keine Daten für ${tag}` : "Keine Tag-ID eingegeben.");
+    setDetails({ tagId: tag });
+    if (tag && shouldLog) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
+    return;
+  }
+  showDevice(device);
+  if (shouldLog) logWalkCheck({ ...device, status: getStatusLabel(getCheckStatus(device.nextCheck)), source });
+}
+
+function showDevice(device) {
+  state.currentTag = normalizeTag(device.tagId);
+  const status = getCheckStatus(device.nextCheck);
+  els.statusPanel.className = `status-panel ${status}`;
+  els.statusKicker.textContent = device.tagId;
+  els.statusText.textContent =
+    status === "valid"
+      ? "Geprüft und iO"
+      : status === "soon"
+        ? "Bald prüfen"
+        : "Dringend Prüfung veranlassen";
+  els.statusSubline.textContent =
+    status === "valid"
+      ? `Nächste Prüfung: ${formatDate(device.nextCheck)}`
+      : status === "soon"
+        ? `Innerhalb 1 Monat: ${formatDate(device.nextCheck)}`
+        : `Fällig seit: ${formatDate(device.nextCheck)}`;
+  setDetails(device);
+}
+
+function showUnknown(kicker, title, subline) {
+  els.statusPanel.className = "status-panel unknown";
+  els.statusKicker.textContent = kicker;
+  els.statusText.textContent = title;
+  els.statusSubline.textContent = subline;
+}
+
+function showStart() {
+  els.statusPanel.className = "status-panel start";
+  els.statusKicker.textContent = "Bereit";
+  els.statusText.textContent = "Bitte erstes Gerät scannen";
+  els.statusSubline.textContent = "NFC-Tag halten oder Tag-ID eingeben.";
+  setDetails({});
+}
+
+function setDetails(device = {}) {
+  els.partValue.textContent = device.part || "-";
+  els.dateValue.textContent = device.nextCheck ? formatDate(device.nextCheck) : "-";
+  els.labValue.textContent = device.lab || "-";
+  els.placeValue.textContent = device.place || "-";
+  els.tagValue.textContent = device.tagId || "-";
+  els.urlValue.textContent = device.tagId ? buildDeviceUrl(device.tagId) : "-";
+}
+
+function buildDeviceUrl(tagId) {
+  return `${location.origin}${location.pathname}?id=${encodeURIComponent(normalizeTag(tagId))}`;
+}
+
+function getCheckStatus(dateValue) {
+  if (!dateValue) return "unknown";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const check = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(check.getTime())) return "unknown";
+  const diffDays = Math.ceil((check.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return "invalid";
+  if (diffDays <= 30) return "soon";
+  return "valid";
+}
+
+function getWarningStatus(dateValue) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const check = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(check.getTime())) return "unknown";
+  const diffDays = Math.ceil((check.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return "invalid";
+  if (diffDays <= 60) return "soon";
+  return "valid";
+}
+
+function getStatusLabel(status) {
+  if (status === "valid") return "Geprüft und iO";
+  if (status === "soon") return "Bald prüfen";
+  if (status === "invalid") return "Dringend Prüfung veranlassen";
+  return "Unbekannt";
+}
+
+function formatDate(dateValue) {
+  if (!dateValue) return "-";
+  const date = new Date(`${dateValue}T00:00:00`);
+  return date.toLocaleDateString("de-DE");
+}
+
+function saveDeviceFromForm(event) {
+  event.preventDefault();
+  const device = {
+    tagId: normalizeTag(els.formTag.value),
+    part: els.formPart.value.trim(),
+    nextCheck: els.formDate.value,
+    lab: els.formLab.value.trim(),
+    place: els.formPlace.value.trim(),
+    inspector: els.inspectorInput.value.trim(),
+  };
+
+  const existing = state.devices.findIndex((item) => normalizeTag(item.tagId) === device.tagId);
+  if (existing >= 0) {
+    state.devices[existing] = device;
+  } else {
+    state.devices.push(device);
+  }
+
+  persist();
+  renderList();
+  renderWarnings();
+  showDevice(device);
+  els.form.reset();
+}
+
+function savePreparedDevice(showFeedback) {
+  const device = buildPreparedDevice();
+  if (!device) return null;
+
+  upsertDevice(device);
+  persist();
+  renderList();
+  renderWarnings();
+  renderWriterPreview();
+  if (showFeedback) els.writerHint.textContent = `${device.tagId} gespeichert.`;
+  return device;
+}
+
+function buildPreparedDevice() {
+  const device = {
+    tagId: normalizeTag(els.writerTag.value),
+    part: els.writerPart.value.trim(),
+    nextCheck: els.writerDate.value,
+    lab: els.writerLab.value.trim(),
+    place: els.writerPlace.value.trim(),
+    inspector: els.writerInspector.value.trim(),
+  };
+
+  if (!device.tagId || !device.part || !device.nextCheck || !device.lab || !device.place) {
+    els.writerHint.textContent = "Tag-ID, Bauteil, Prüfdatum, Labor und Ort müssen gefüllt sein.";
+    return null;
+  }
+  saveWriterDefaults();
+  return device;
+}
+
+function upsertDevice(device) {
+  const existing = state.devices.findIndex((item) => normalizeTag(item.tagId) === device.tagId);
+  if (existing >= 0) {
+    state.devices[existing] = device;
+  } else {
+    state.devices.push(device);
+  }
+}
+
+function nextPreparedDevice() {
+  els.writerTag.value = incrementTag(els.writerTag.value);
+  els.writerPart.value = "";
+  saveWriterDefaults();
+  renderWriterPreview();
+  els.writerPart.focus();
+}
+
+function addDemoData() {
+  state.devices = [...DEFAULT_DEVICES];
+  persist();
+  renderList();
+  renderWarnings();
+  showDevice(state.devices[0]);
+}
+
+function renderList() {
+  els.deviceList.innerHTML = "";
+  for (const device of state.devices) {
+    const row = document.createElement("div");
+    row.className = "device-row";
+    const status = getCheckStatus(device.nextCheck);
+    const label = status === "valid" ? "OK" : status === "soon" ? "BALD" : status === "unknown" ? "?" : "PRÜFEN";
+    row.innerHTML = `
+      <div class="badge ${status}">${label}</div>
+      <div class="row-main">
+        <strong>${escapeHtml(device.part)}</strong>
+        <span>${escapeHtml(device.tagId)} · ${escapeHtml(device.lab)} · ${escapeHtml(device.place)}</span>
+      </div>
+      <div class="row-actions">
+        <button type="button" data-action="show" data-id="${escapeHtml(device.tagId)}">Anzeigen</button>
+        <button type="button" data-action="assign" data-id="${escapeHtml(device.tagId)}">Tag zuweisen</button>
+        <button type="button" data-action="delete" data-id="${escapeHtml(device.tagId)}">Löschen</button>
+      </div>
+    `;
+    els.deviceList.appendChild(row);
+  }
+
+  els.deviceList.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.getAttribute("data-id");
+      if (button.getAttribute("data-action") === "delete") {
+        state.devices = state.devices.filter((item) => normalizeTag(item.tagId) !== normalizeTag(id));
+        persist();
+        renderList();
+        renderWarnings();
+      } else if (button.getAttribute("data-action") === "assign") {
+        assignCurrentTag(id);
+      } else {
+        findAndShow(id, "Anzeige", false);
+      }
+    });
+  });
+}
+
+function assignCurrentTag(oldId) {
+  const newTag = normalizeTag(els.tagInput.value || state.currentTag);
+  if (!newTag) {
+    els.nfcHint.textContent = "Erst neue Tag-ID scannen oder eingeben.";
+    return;
+  }
+
+  const index = state.devices.findIndex((item) => normalizeTag(item.tagId) === normalizeTag(oldId));
+  if (index < 0) return;
+
+  state.devices[index] = { ...state.devices[index], tagId: newTag };
+  persist();
+  renderList();
+  renderWarnings();
+  findAndShow(newTag, "Anzeige", false);
+  els.nfcHint.textContent = `Tag ${newTag} zugewiesen.`;
+}
+
+function renderWarnings() {
+  const selectedInspector = els.inspectorInput.value.trim().toLowerCase();
+  const warnings = state.devices
+    .map((device) => ({ device, status: getWarningStatus(device.nextCheck) }))
+    .filter((item) => {
+      const owner = String(item.device.inspector || "").trim().toLowerCase();
+      return !owner || !selectedInspector || owner === selectedInspector;
+    })
+    .filter((item) => item.status !== "valid")
+    .sort((a, b) => String(a.device.nextCheck).localeCompare(String(b.device.nextCheck)));
+
+  els.warningCount.textContent = `${warnings.length} Geräte`;
+  els.warningList.innerHTML = "";
+
+  if (!warnings.length) {
+    els.warningList.innerHTML = `<p class="hint">Keine fälligen Geräte in den nächsten 2 Monaten.</p>`;
+    return;
+  }
+
+  for (const item of warnings) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `warning-row ${item.status}`;
+    row.innerHTML = `
+      <strong>${escapeHtml(item.device.tagId)}</strong>
+      <span>${escapeHtml(getStatusLabel(item.status))}</span>
+      <small>${escapeHtml(item.device.part)} · ${formatDate(item.device.nextCheck)} · ${escapeHtml(item.device.lab)} · ${escapeHtml(item.device.place)}</small>
+      <small>Prüfer: ${escapeHtml(item.device.inspector || "alle")}</small>
+    `;
+    row.addEventListener("click", () => findAndShow(item.device.tagId, "Anzeige", false));
+    els.warningList.appendChild(row);
+  }
+}
+
+function renderWriterPreview() {
+  const tag = normalizeTag(els.writerTag.value);
+  const url = tag ? buildDeviceUrl(tag) : "-";
+  els.writerPreview.textContent = tag
+    ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · ${formatDate(els.writerDate.value)} · ${els.writerLab.value || "-"} · ${els.writerPlace.value || "-"} · ${url}`
+    : "-";
+}
+
+function logWalkCheck(entry) {
+  const now = new Date();
+  const row = {
+    time: now.toISOString(),
+    localTime: now.toLocaleString("de-DE"),
+    inspector: els.inspectorInput.value.trim(),
+    source: entry.source || "Manuell",
+    tagId: normalizeTag(entry.tagId),
+    status: entry.status || "Unbekannt",
+    part: entry.part || "",
+    nextCheck: entry.nextCheck || "",
+    lab: entry.lab || "",
+    place: entry.place || "",
+  };
+
+  state.walkLog = [row, ...state.walkLog].slice(0, 500);
+  persistWalkLog();
+  renderWalkLog();
+}
+
+function renderWalkLog() {
+  els.walkLogCount.textContent = `${state.walkLog.length} Prüfungen`;
+  els.walkLogList.innerHTML = "";
+
+  if (!state.walkLog.length) {
+    els.walkLogList.innerHTML = `<p class="hint">Noch kein Rundgang-Protokoll. Scannen oder suchen speichert hier automatisch.</p>`;
+    return;
+  }
+
+  for (const row of state.walkLog.slice(0, 12)) {
+    const item = document.createElement("div");
+    item.className = "walklog-row";
+    item.innerHTML = `
+      <strong>${escapeHtml(row.tagId || "-")}</strong>
+      <span>${escapeHtml(row.status || "-")}</span>
+      <small>${escapeHtml(row.localTime || "-")} · ${escapeHtml(row.source || "-")} · ${escapeHtml(row.inspector || "Ohne Prüfer")}</small>
+      <small>${escapeHtml(row.part || "-")} · ${escapeHtml(row.lab || "-")} · ${escapeHtml(row.place || "-")}</small>
+    `;
+    els.walkLogList.appendChild(item);
+  }
+}
+
+function buildWalkLogCsv() {
+  const rows = [
+    ["Zeit", "Pruefer", "Quelle", "Tag_ID", "Ergebnis", "Bauteil", "NaechstePruefung", "Labor", "Ort"],
+    ...state.walkLog.map((row) => [
+      row.localTime,
+      row.inspector || "",
+      row.source,
+      row.tagId,
+      row.status,
+      row.part,
+      row.nextCheck ? formatDate(row.nextCheck) : "",
+      row.lab,
+      row.place,
+    ]),
+  ];
+
+  return rows.map((row) => row.map(csvCell).join(";")).join("\r\n");
+}
+
+function csvCell(value) {
+  return `"${String(value || "").replace(/"/g, '""')}"`;
+}
+
+function downloadWalkLog() {
+  if (!state.walkLog.length) {
+    els.nfcHint.textContent = "Noch kein Protokoll vorhanden.";
+    return;
+  }
+
+  const blob = new Blob([`\uFEFF${buildWalkLogCsv()}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `dguv-laborrundgang-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function emailWalkLog() {
+  if (!state.walkLog.length) {
+    els.nfcHint.textContent = "Noch kein Protokoll vorhanden.";
+    return;
+  }
+
+  const subject = encodeURIComponent(`DGUV Laborrundgang ${new Date().toLocaleDateString("de-DE")}`);
+  const body = encodeURIComponent(buildWalkLogCsv());
+  location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function clearWalkLog() {
+  state.walkLog = [];
+  persistWalkLog();
+  renderWalkLog();
+}
+
+function exportJson() {
+  const blob = new Blob([JSON.stringify(state.devices, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "dguv-nfc-geräte.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const data = JSON.parse(text);
+  if (!Array.isArray(data)) throw new Error("JSON muss eine Liste sein.");
+  state.devices = data.map((item) => ({
+    tagId: normalizeTag(item.tagId),
+    part: String(item.part || "").trim(),
+    nextCheck: String(item.nextCheck || "").trim(),
+    lab: String(item.lab || "").trim(),
+    place: String(item.place || "").trim(),
+    inspector: String(item.inspector || "").trim(),
+  }));
+  persist();
+  renderList();
+  renderWarnings();
+  showStart();
+}
+
+function parseDevicesCsv(csv) {
+  const rows = parseCsv(csv).filter((row) => row.some((cell) => String(cell).trim()));
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((cell) => normalizeHeader(cell));
+
+  return rows
+    .slice(1)
+    .map((row) => {
+      const record = {};
+      headers.forEach((header, index) => {
+        record[header] = row[index] || "";
+      });
+      return {
+        tagId: normalizeTag(record.tagid || record.tag_id || record.id),
+        part: String(record.bauteil || record.geraet || record.part || "").trim(),
+        nextCheck: normalizeDate(
+          record.naechstepruefung ||
+            record.datum ||
+            record.pruefdatum
+        ),
+        lab: String(record.labor || "").trim(),
+        place: String(record.ort || record.standort || "").trim(),
+        inspector: String(record.pruefer || record.inspector || "").trim(),
+      };
+    })
+    .filter((device) => device.tagId && device.part && device.nextCheck);
+}
+
+function parseCsv(csv) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let index = 0; index < csv.length; index += 1) {
+    const char = csv[index];
+    const next = csv[index + 1];
+
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      quoted = true;
+    } else if (char === "," || char === ";") {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else if (char !== "\r") {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  rows.push(row);
+  return rows;
+}
+
+function normalizeHeader(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-]/g, "")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss");
+}
+
+function normalizeDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const german = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (german) {
+    return `${german[3]}-${german[2].padStart(2, "0")}-${german[1].padStart(2, "0")}`;
+  }
+  return raw;
+}
+
+function loadDevices() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [...DEFAULT_DEVICES];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return [...DEFAULT_DEVICES];
+    const merged = [...parsed];
+    for (const demo of DEFAULT_DEVICES) {
+      if (!merged.some((item) => normalizeTag(item.tagId) === normalizeTag(demo.tagId))) {
+        merged.push(demo);
+      }
+    }
+    return merged;
+  } catch {
+    return [...DEFAULT_DEVICES];
+  }
+}
+
+function loadWalkLog() {
+  try {
+    const raw = localStorage.getItem(WALK_LOG_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function pn532Wakeup() {
+  await serialWriteBytes([0x55, 0x55, 0x00, 0x00, 0x00]);
+  await delay(80);
+  await drainSerial();
+}
+
+async function pn532FindTarget() {
+  const response = await pn532Command([0x4a, 0x01, 0x00]);
+  const targetCount = response[2] || 0;
+  if (!targetCount) return null;
+  return response[3] || 1;
+}
+
+async function writeNtagUrl(target, url) {
+  const bytes = buildNdefUrlBytes(url);
+  const pageBytes = [...bytes];
+  while (pageBytes.length % 4 !== 0) pageBytes.push(0x00);
+
+  for (let offset = 0; offset < pageBytes.length; offset += 4) {
+    const page = 4 + offset / 4;
+    if (page > 39) throw new Error("URL ist zu lang für NTAG213.");
+    const chunk = pageBytes.slice(offset, offset + 4);
+    await pn532Command([0x40, target, 0xa2, page, ...chunk]);
+  }
+}
+
+function buildNdefUrlBytes(url) {
+  const prefix = "https://";
+  const uriCode = url.startsWith(prefix) ? 0x04 : 0x00;
+  const uriText = uriCode ? url.slice(prefix.length) : url;
+  const uriBytes = [...new TextEncoder().encode(uriText)];
+  const record = [
+    0xd1,
+    0x01,
+    uriBytes.length + 1,
+    0x55,
+    uriCode,
+    ...uriBytes,
+  ];
+  const tlv = [0x03, record.length, ...record, 0xfe];
+  if (tlv.length > 144) throw new Error("URL ist zu lang für NTAG213.");
+  return tlv;
+}
+
+async function pn532Command(command) {
+  const frame = buildPn532Frame(command);
+  await serialWriteBytes(frame);
+  const ack = await serialReadBytes(6, 1200);
+  if (!isPn532Ack(ack)) throw new Error("PN532 antwortet nicht.");
+  const response = await readPn532Frame(1800);
+  if (response[0] !== 0xd5 || response[1] !== command[0] + 1) {
+    throw new Error("Unerwartete PN532-Antwort.");
+  }
+  return response;
+}
+
+function buildPn532Frame(command) {
+  const data = [0xd4, ...command];
+  const length = data.length;
+  const lcs = (0x100 - length) & 0xff;
+  const dcs = (0x100 - (data.reduce((sum, byte) => sum + byte, 0) & 0xff)) & 0xff;
+  return [0x00, 0x00, 0xff, length, lcs, ...data, dcs, 0x00];
+}
+
+function isPn532Ack(bytes) {
+  return bytes.length >= 6 && bytes.slice(0, 6).join(",") === "0,0,255,0,255,0";
+}
+
+async function readPn532Frame(timeoutMs) {
+  const bytes = [];
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    bytes.push(...await serialReadAvailable(Math.max(80, end - Date.now())));
+    const start = bytes.findIndex((_, index) => bytes[index] === 0x00 && bytes[index + 1] === 0x00 && bytes[index + 2] === 0xff);
+    if (start < 0 || bytes.length < start + 6) continue;
+    const length = bytes[start + 3];
+    const frameEnd = start + 7 + length;
+    if (bytes.length >= frameEnd) return bytes.slice(start + 5, start + 5 + length);
+  }
+  throw new Error("Zeitüberschreitung beim PN532.");
+}
+
+async function serialWriteBytes(bytes) {
+  await serialWriter.write(new Uint8Array(bytes));
+}
+
+async function serialReadBytes(count, timeoutMs) {
+  const bytes = [];
+  const end = Date.now() + timeoutMs;
+  while (bytes.length < count && Date.now() < end) {
+    bytes.push(...await serialReadAvailable(Math.max(80, end - Date.now())));
+  }
+  return bytes.slice(0, count);
+}
+
+async function serialReadAvailable(timeoutMs) {
+  const timeout = new Promise((resolve) => setTimeout(() => resolve({ value: new Uint8Array(), done: false }), timeoutMs));
+  const result = await Promise.race([serialReader.read(), timeout]);
+  return result.value ? [...result.value] : [];
+}
+
+async function drainSerial() {
+  for (let index = 0; index < 4; index += 1) {
+    const bytes = await serialReadAvailable(40);
+    if (!bytes.length) return;
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function loadWriterDefaults() {
+  try {
+    const defaults = JSON.parse(localStorage.getItem(WRITER_KEY) || "{}");
+    els.writerInspector.value = defaults.inspector || localStorage.getItem(INSPECTOR_KEY) || "Peschel";
+    els.writerDate.value = defaults.nextCheck || "";
+    els.writerLab.value = defaults.lab || "";
+    els.writerPlace.value = defaults.place || "";
+    els.writerTag.value = defaults.tagId || "";
+    els.writerPart.value = "";
+  } catch {
+    els.writerInspector.value = localStorage.getItem(INSPECTOR_KEY) || "Peschel";
+  }
+}
+
+function saveWriterDefaults() {
+  localStorage.setItem(
+    WRITER_KEY,
+    JSON.stringify({
+      inspector: els.writerInspector.value.trim(),
+      nextCheck: els.writerDate.value,
+      lab: els.writerLab.value.trim(),
+      place: els.writerPlace.value.trim(),
+      tagId: normalizeTag(els.writerTag.value),
+    })
+  );
+}
+
+function incrementTag(value) {
+  const tag = normalizeTag(value);
+  const match = tag.match(/^(.*?)(\d+)$/);
+  if (!match) return tag;
+  const nextNumber = String(Number(match[2]) + 1).padStart(match[2].length, "0");
+  return `${match[1]}${nextNumber}`;
+}
+
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.devices));
+}
+
+function persistWalkLog() {
+  localStorage.setItem(WALK_LOG_KEY, JSON.stringify(state.walkLog));
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+
+</script>
+  </body>
+</html>
+
+
