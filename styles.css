@@ -15,6 +15,30 @@ body {
   background: #101722;
 }
 
+.mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.mode-tabs button {
+  min-height: 52px;
+  border: 1px solid #3d4d63;
+  background: #182232;
+  color: #aab8c8;
+  font-weight: 800;
+}
+
+.mode-tabs button.active {
+  background: #eef4f8;
+  color: #101722;
+}
+
+.view-hidden {
+  display: none !important;
+}
+
 button,
 input,
 select,
@@ -92,6 +116,7 @@ h1 {
 .controls,
 .details,
 .inventory,
+.writer-page,
 .warnings,
 .walklog,
 .tomorrow {
@@ -235,6 +260,26 @@ h2 {
 
 form {
   grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+}
+
+.writer-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.writer-submit {
+  grid-column: 1 / -1;
+}
+
+.prepared-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+}
+
+.prepared-card dd {
+  font-size: 17px;
+  line-height: 1.35;
 }
 
 .data-actions {
@@ -406,6 +451,7 @@ form {
   .manual-search,
   .write-actions,
   form,
+  .writer-form,
   dl,
   .warning-row,
   .walklog-row,

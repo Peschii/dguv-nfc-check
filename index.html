@@ -6,17 +6,69 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="status-panel unknown" id="statusPanel">
+      <nav class="mode-tabs" aria-label="Modus">
+        <button class="active" id="checkModeButton" type="button">Prüfen</button>
+        <button id="writeModeButton" type="button">Tags beschreiben</button>
+      </nav>
+
+      <section class="writer-page view-hidden" id="writerPage" aria-label="Tags beschreiben">
+        <div class="section-title">
+          <h2>Tags beschreiben</h2>
+          <span id="writerCounter">Bereit</span>
+        </div>
+        <form class="writer-form" id="writerForm">
+          <label>
+            Prüfer
+            <select id="writerInspector">
+              <option value="Peschel">Peschel</option>
+              <option value="Kittelmann">Kittelmann</option>
+            </select>
+          </label>
+          <label>
+            Nächste Prüfung
+            <input id="writerDate" type="date" required />
+          </label>
+          <label>
+            Labor
+            <input id="writerLab" placeholder="Labor 1" required />
+          </label>
+          <label>
+            Ort / Standort
+            <input id="writerPlace" placeholder="Tisch 1" required />
+          </label>
+          <label>
+            Tag-ID
+            <input id="writerTag" placeholder="EL-005" required />
+          </label>
+          <label>
+            Bauteil
+            <input id="writerPart" placeholder="Gerätename" required />
+          </label>
+          <button class="primary writer-submit" id="writePreparedButton" type="submit">Gerät speichern und NFC schreiben</button>
+        </form>
+        <div class="write-actions">
+          <button id="connectUsbButton" type="button">USB-NFC verbinden</button>
+          <button id="savePreparedButton" type="button">Nur Gerät speichern</button>
+          <button id="nextPreparedButton" type="button">Nächstes Gerät</button>
+        </div>
+        <div class="prepared-card">
+          <dt>Wird geschrieben</dt>
+          <dd id="writerPreview">-</dd>
+        </div>
+        <p class="hint" id="writerHint">Wiederkehrende Felder bleiben gespeichert. Nach dem Schreiben wird die Tag-ID hochgezählt und das Bauteil geleert.</p>
+      </section>
+
+      <section class="status-panel unknown check-view" id="statusPanel">
         <div class="status-kicker" id="statusKicker">Bereit</div>
         <h1 id="statusText">DGUV NFC Check</h1>
         <p id="statusSubline">NFC scannen oder Tag-ID eingeben.</p>
       </section>
 
-      <section class="controls" aria-label="Scan und Suche">
+      <section class="controls check-view" aria-label="Scan und Suche">
         <label class="inspector-field" for="inspectorInput">
           Prüfer
           <select id="inspectorInput">
@@ -36,7 +88,7 @@
         <p class="hint" id="nfcHint">Android Chrome benötigt HTTPS und aktiviertes NFC.</p>
       </section>
 
-      <section class="details" aria-label="Gerätedaten">
+      <section class="details check-view" aria-label="Gerätedaten">
         <dl>
           <div>
             <dt>Bauteil</dt>
@@ -66,7 +118,7 @@
         <button class="copy-url" id="copyUrlButton" type="button">Tag-URL kopieren</button>
       </section>
 
-      <section class="walklog" aria-label="Laborrundgang Protokoll">
+      <section class="walklog check-view" aria-label="Laborrundgang Protokoll">
         <div class="section-title">
           <h2>Laborrundgang</h2>
           <span id="walkLogCount">0 Prüfungen</span>
@@ -79,7 +131,7 @@
         <div class="walklog-list" id="walkLogList"></div>
       </section>
 
-      <section class="warnings" aria-label="Prüfwarnungen">
+      <section class="warnings check-view" aria-label="Prüfwarnungen">
         <div class="section-title">
           <h2>Prüfwarnungen</h2>
           <span id="warningCount">0 Geräte</span>
@@ -87,7 +139,7 @@
         <div class="warning-list" id="warningList"></div>
       </section>
 
-      <section class="inventory" aria-label="Geräte verwalten">
+      <section class="inventory check-view" aria-label="Geräte verwalten">
         <div class="section-title">
           <h2>Geräte</h2>
           <button id="reloadSheetButton" type="button">Sheet neu laden</button>
@@ -119,7 +171,7 @@
         <div class="device-list" id="deviceList"></div>
       </section>
 
-      <section class="tomorrow" aria-label="Morgen testen">
+      <section class="tomorrow check-view" aria-label="Morgen testen">
         <h2>Morgen testen</h2>
         <ol>
           <li>App über HTTPS auf dem Android-Handy öffnen.</li>
@@ -130,7 +182,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=9"></script>
+    <script src="app.js?v=11"></script>
   </body>
 </html>
 

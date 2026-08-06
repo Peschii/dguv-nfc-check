@@ -2,6 +2,7 @@
 const SHEET_URL_KEY = "dguv-nfc-sheet-url-v1";
 const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
 const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
+const WRITER_KEY = "dguv-nfc-writer-v1";
 
 const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
@@ -14,9 +15,14 @@ const state = {
   devices: loadDevices(),
   walkLog: loadWalkLog(),
   currentTag: "",
+  writerCount: 0,
 };
 
 const els = {
+  checkModeButton: document.getElementById("checkModeButton"),
+  writeModeButton: document.getElementById("writeModeButton"),
+  writerPage: document.getElementById("writerPage"),
+  checkViews: document.querySelectorAll(".check-view"),
   statusPanel: document.getElementById("statusPanel"),
   statusKicker: document.getElementById("statusKicker"),
   statusText: document.getElementById("statusText"),
@@ -55,19 +61,43 @@ const els = {
   downloadLogButton: document.getElementById("downloadLogButton"),
   emailLogButton: document.getElementById("emailLogButton"),
   clearLogButton: document.getElementById("clearLogButton"),
+  writerForm: document.getElementById("writerForm"),
+  writerInspector: document.getElementById("writerInspector"),
+  writerDate: document.getElementById("writerDate"),
+  writerLab: document.getElementById("writerLab"),
+  writerPlace: document.getElementById("writerPlace"),
+  writerTag: document.getElementById("writerTag"),
+  writerPart: document.getElementById("writerPart"),
+  connectUsbButton: document.getElementById("connectUsbButton"),
+  writePreparedButton: document.getElementById("writePreparedButton"),
+  savePreparedButton: document.getElementById("savePreparedButton"),
+  nextPreparedButton: document.getElementById("nextPreparedButton"),
+  writerCounter: document.getElementById("writerCounter"),
+  writerPreview: document.getElementById("writerPreview"),
+  writerHint: document.getElementById("writerHint"),
 };
+
+let serialPort = null;
+let serialReader = null;
+let serialWriter = null;
 
 init();
 
 function init() {
   els.sheetUrlInput.value = localStorage.getItem(SHEET_URL_KEY) || "";
   els.inspectorInput.value = localStorage.getItem(INSPECTOR_KEY) || "";
+  loadWriterDefaults();
 
   if (!("NDEFReader" in window)) {
     els.nfcHint.textContent = "NFC Scan geht nur in Chrome auf Android. Manuelle Suche geht überall.";
     els.scanButton.disabled = true;
     els.writeUrlButton.disabled = true;
     els.writeTextButton.disabled = true;
+  }
+
+  if (!("serial" in navigator)) {
+    els.connectUsbButton.disabled = true;
+    els.connectUsbButton.textContent = "USB-NFC nicht unterstützt";
   }
 
   const idFromUrl = new URLSearchParams(location.search).get("id");
@@ -78,6 +108,8 @@ function init() {
   }
 
   els.scanButton.addEventListener("click", scanNfc);
+  els.checkModeButton.addEventListener("click", () => setMode("check"));
+  els.writeModeButton.addEventListener("click", () => setMode("write"));
   els.writeUrlButton.addEventListener("click", () => writeNfc("url"));
   els.writeTextButton.addEventListener("click", () => writeNfc("text"));
   els.copyUrlButton.addEventListener("click", copyCurrentUrl);
@@ -98,13 +130,33 @@ function init() {
   els.downloadLogButton.addEventListener("click", downloadWalkLog);
   els.emailLogButton.addEventListener("click", emailWalkLog);
   els.clearLogButton.addEventListener("click", clearWalkLog);
+  els.connectUsbButton.addEventListener("click", connectUsbNfc);
+  els.writerForm.addEventListener("submit", writePreparedTag);
+  els.savePreparedButton.addEventListener("click", () => savePreparedDevice(true));
+  els.nextPreparedButton.addEventListener("click", nextPreparedDevice);
+  [els.writerInspector, els.writerDate, els.writerLab, els.writerPlace, els.writerTag, els.writerPart].forEach((input) => {
+    input.addEventListener("input", () => {
+      saveWriterDefaults();
+      renderWriterPreview();
+    });
+  });
   renderList();
   renderWalkLog();
   renderWarnings();
+  renderWriterPreview();
 
   if (els.sheetUrlInput.value) {
     loadFromSheet();
   }
+}
+
+function setMode(mode) {
+  const writing = mode === "write";
+  els.writerPage.classList.toggle("view-hidden", !writing);
+  els.checkViews.forEach((section) => section.classList.toggle("view-hidden", writing));
+  els.writeModeButton.classList.toggle("active", writing);
+  els.checkModeButton.classList.toggle("active", !writing);
+  if (writing) els.writerPart.focus();
 }
 
 function saveSheetUrl() {
@@ -192,6 +244,74 @@ async function writeNfc(mode) {
     els.nfcHint.textContent = `NFC-Tag geschrieben: ${payload}`;
   } catch (error) {
     showUnknown("Schreiben fehlgeschlagen", "NFC-Fehler", error.message || "Tag konnte nicht beschrieben werden.");
+  }
+}
+
+async function writePreparedTag(event) {
+  event.preventDefault();
+  const device = savePreparedDevice(false);
+  if (!device) return;
+
+  if (serialPort) {
+    await writePreparedTagUsb(device);
+    return;
+  }
+
+  if (!("NDEFReader" in window)) {
+    els.writerHint.textContent = "Kein USB-NFC verbunden. Gerät wurde gespeichert.";
+    return;
+  }
+
+  try {
+    const writer = new NDEFReader();
+    const payload = buildDeviceUrl(device.tagId);
+    await writer.write({ records: [{ recordType: "url", data: payload }] });
+    state.writerCount += 1;
+    els.writerCounter.textContent = `${state.writerCount} geschrieben`;
+    els.writerHint.textContent = `NFC geschrieben: ${payload}`;
+    nextPreparedDevice();
+  } catch (error) {
+    els.writerHint.textContent = error.message || "NFC konnte nicht beschrieben werden.";
+  }
+}
+
+async function connectUsbNfc() {
+  if (!("serial" in navigator)) {
+    els.writerHint.textContent = "USB-NFC geht in Chrome/Edge am PC über Web Serial.";
+    return;
+  }
+
+  try {
+    serialPort = await navigator.serial.requestPort();
+    await serialPort.open({ baudRate: 115200 });
+    serialReader = serialPort.readable.getReader();
+    serialWriter = serialPort.writable.getWriter();
+    await pn532Wakeup();
+    await pn532Command([0x14, 0x01, 0x14, 0x01]);
+    els.connectUsbButton.textContent = "USB-NFC verbunden";
+    els.writerHint.textContent = "PN532 verbunden. Tag auflegen und schreiben.";
+  } catch (error) {
+    serialPort = null;
+    els.writerHint.textContent = error.message || "USB-NFC konnte nicht verbunden werden.";
+  }
+}
+
+async function writePreparedTagUsb(device) {
+  try {
+    els.writerHint.textContent = "Tag auflegen...";
+    const target = await pn532FindTarget();
+    if (!target) {
+      els.writerHint.textContent = "Kein NFC-Tag gefunden.";
+      return;
+    }
+
+    await writeNtagUrl(target, buildDeviceUrl(device.tagId));
+    state.writerCount += 1;
+    els.writerCounter.textContent = `${state.writerCount} geschrieben`;
+    els.writerHint.textContent = `USB-NFC geschrieben: ${device.tagId}`;
+    nextPreparedDevice();
+  } catch (error) {
+    els.writerHint.textContent = error.message || "USB-Schreiben fehlgeschlagen.";
   }
 }
 
@@ -393,6 +513,54 @@ function saveDeviceFromForm(event) {
   els.form.reset();
 }
 
+function savePreparedDevice(showFeedback) {
+  const device = buildPreparedDevice();
+  if (!device) return null;
+
+  upsertDevice(device);
+  persist();
+  renderList();
+  renderWarnings();
+  renderWriterPreview();
+  if (showFeedback) els.writerHint.textContent = `${device.tagId} gespeichert.`;
+  return device;
+}
+
+function buildPreparedDevice() {
+  const device = {
+    tagId: normalizeTag(els.writerTag.value),
+    part: els.writerPart.value.trim(),
+    nextCheck: els.writerDate.value,
+    lab: els.writerLab.value.trim(),
+    place: els.writerPlace.value.trim(),
+    inspector: els.writerInspector.value.trim(),
+  };
+
+  if (!device.tagId || !device.part || !device.nextCheck || !device.lab || !device.place) {
+    els.writerHint.textContent = "Tag-ID, Bauteil, Prüfdatum, Labor und Ort müssen gefüllt sein.";
+    return null;
+  }
+  saveWriterDefaults();
+  return device;
+}
+
+function upsertDevice(device) {
+  const existing = state.devices.findIndex((item) => normalizeTag(item.tagId) === device.tagId);
+  if (existing >= 0) {
+    state.devices[existing] = device;
+  } else {
+    state.devices.push(device);
+  }
+}
+
+function nextPreparedDevice() {
+  els.writerTag.value = incrementTag(els.writerTag.value);
+  els.writerPart.value = "";
+  saveWriterDefaults();
+  renderWriterPreview();
+  els.writerPart.focus();
+}
+
 function addDemoData() {
   state.devices = [...DEFAULT_DEVICES];
   persist();
@@ -490,6 +658,14 @@ function renderWarnings() {
     row.addEventListener("click", () => findAndShow(item.device.tagId, "Anzeige", false));
     els.warningList.appendChild(row);
   }
+}
+
+function renderWriterPreview() {
+  const tag = normalizeTag(els.writerTag.value);
+  const url = tag ? buildDeviceUrl(tag) : "-";
+  els.writerPreview.textContent = tag
+    ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · ${formatDate(els.writerDate.value)} · ${els.writerLab.value || "-"} · ${els.writerPlace.value || "-"} · ${url}`
+    : "-";
 }
 
 function logWalkCheck(entry) {
@@ -737,6 +913,153 @@ function loadWalkLog() {
   } catch {
     return [];
   }
+}
+
+async function pn532Wakeup() {
+  await serialWriteBytes([0x55, 0x55, 0x00, 0x00, 0x00]);
+  await delay(80);
+  await drainSerial();
+}
+
+async function pn532FindTarget() {
+  const response = await pn532Command([0x4a, 0x01, 0x00]);
+  const targetCount = response[2] || 0;
+  if (!targetCount) return null;
+  return response[3] || 1;
+}
+
+async function writeNtagUrl(target, url) {
+  const bytes = buildNdefUrlBytes(url);
+  const pageBytes = [...bytes];
+  while (pageBytes.length % 4 !== 0) pageBytes.push(0x00);
+
+  for (let offset = 0; offset < pageBytes.length; offset += 4) {
+    const page = 4 + offset / 4;
+    if (page > 39) throw new Error("URL ist zu lang für NTAG213.");
+    const chunk = pageBytes.slice(offset, offset + 4);
+    await pn532Command([0x40, target, 0xa2, page, ...chunk]);
+  }
+}
+
+function buildNdefUrlBytes(url) {
+  const prefix = "https://";
+  const uriCode = url.startsWith(prefix) ? 0x04 : 0x00;
+  const uriText = uriCode ? url.slice(prefix.length) : url;
+  const uriBytes = [...new TextEncoder().encode(uriText)];
+  const record = [
+    0xd1,
+    0x01,
+    uriBytes.length + 1,
+    0x55,
+    uriCode,
+    ...uriBytes,
+  ];
+  const tlv = [0x03, record.length, ...record, 0xfe];
+  if (tlv.length > 144) throw new Error("URL ist zu lang für NTAG213.");
+  return tlv;
+}
+
+async function pn532Command(command) {
+  const frame = buildPn532Frame(command);
+  await serialWriteBytes(frame);
+  const ack = await serialReadBytes(6, 1200);
+  if (!isPn532Ack(ack)) throw new Error("PN532 antwortet nicht.");
+  const response = await readPn532Frame(1800);
+  if (response[0] !== 0xd5 || response[1] !== command[0] + 1) {
+    throw new Error("Unerwartete PN532-Antwort.");
+  }
+  return response;
+}
+
+function buildPn532Frame(command) {
+  const data = [0xd4, ...command];
+  const length = data.length;
+  const lcs = (0x100 - length) & 0xff;
+  const dcs = (0x100 - (data.reduce((sum, byte) => sum + byte, 0) & 0xff)) & 0xff;
+  return [0x00, 0x00, 0xff, length, lcs, ...data, dcs, 0x00];
+}
+
+function isPn532Ack(bytes) {
+  return bytes.length >= 6 && bytes.slice(0, 6).join(",") === "0,0,255,0,255,0";
+}
+
+async function readPn532Frame(timeoutMs) {
+  const bytes = [];
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    bytes.push(...await serialReadAvailable(Math.max(80, end - Date.now())));
+    const start = bytes.findIndex((_, index) => bytes[index] === 0x00 && bytes[index + 1] === 0x00 && bytes[index + 2] === 0xff);
+    if (start < 0 || bytes.length < start + 6) continue;
+    const length = bytes[start + 3];
+    const frameEnd = start + 7 + length;
+    if (bytes.length >= frameEnd) return bytes.slice(start + 5, start + 5 + length);
+  }
+  throw new Error("Zeitüberschreitung beim PN532.");
+}
+
+async function serialWriteBytes(bytes) {
+  await serialWriter.write(new Uint8Array(bytes));
+}
+
+async function serialReadBytes(count, timeoutMs) {
+  const bytes = [];
+  const end = Date.now() + timeoutMs;
+  while (bytes.length < count && Date.now() < end) {
+    bytes.push(...await serialReadAvailable(Math.max(80, end - Date.now())));
+  }
+  return bytes.slice(0, count);
+}
+
+async function serialReadAvailable(timeoutMs) {
+  const timeout = new Promise((resolve) => setTimeout(() => resolve({ value: new Uint8Array(), done: false }), timeoutMs));
+  const result = await Promise.race([serialReader.read(), timeout]);
+  return result.value ? [...result.value] : [];
+}
+
+async function drainSerial() {
+  for (let index = 0; index < 4; index += 1) {
+    const bytes = await serialReadAvailable(40);
+    if (!bytes.length) return;
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function loadWriterDefaults() {
+  try {
+    const defaults = JSON.parse(localStorage.getItem(WRITER_KEY) || "{}");
+    els.writerInspector.value = defaults.inspector || localStorage.getItem(INSPECTOR_KEY) || "Peschel";
+    els.writerDate.value = defaults.nextCheck || "";
+    els.writerLab.value = defaults.lab || "";
+    els.writerPlace.value = defaults.place || "";
+    els.writerTag.value = defaults.tagId || "";
+    els.writerPart.value = "";
+  } catch {
+    els.writerInspector.value = localStorage.getItem(INSPECTOR_KEY) || "Peschel";
+  }
+}
+
+function saveWriterDefaults() {
+  localStorage.setItem(
+    WRITER_KEY,
+    JSON.stringify({
+      inspector: els.writerInspector.value.trim(),
+      nextCheck: els.writerDate.value,
+      lab: els.writerLab.value.trim(),
+      place: els.writerPlace.value.trim(),
+      tagId: normalizeTag(els.writerTag.value),
+    })
+  );
+}
+
+function incrementTag(value) {
+  const tag = normalizeTag(value);
+  const match = tag.match(/^(.*?)(\d+)$/);
+  if (!match) return tag;
+  const nextNumber = String(Number(match[2]) + 1).padStart(match[2].length, "0");
+  return `${match[1]}${nextNumber}`;
 }
 
 function persist() {
