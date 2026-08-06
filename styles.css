@@ -17,6 +17,7 @@ body {
 
 button,
 input,
+select,
 label {
   font: inherit;
 }
@@ -91,6 +92,7 @@ h1 {
 .controls,
 .details,
 .inventory,
+.warnings,
 .walklog,
 .tomorrow {
   margin-top: 14px;
@@ -149,7 +151,8 @@ form {
   padding: 0 12px;
 }
 
-input {
+input,
+select {
   width: 100%;
   min-height: 48px;
   border: 1px solid #40516a;
@@ -265,6 +268,49 @@ form {
   gap: 8px;
 }
 
+.warning-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.warning-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 12px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid #2d3b4f;
+  border-left: 8px solid #3d4d63;
+  background: #141d2a;
+  color: #eef4f8;
+}
+
+.warning-row.invalid {
+  border-left-color: #ff3b45;
+}
+
+.warning-row.soon {
+  border-left-color: #ffd12d;
+}
+
+.warning-row.unknown {
+  border-left-color: #ff1493;
+}
+
+.warning-row strong,
+.warning-row span {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.warning-row small {
+  grid-column: 1 / -1;
+  color: #aab8c8;
+  overflow-wrap: anywhere;
+}
+
 .walklog-row {
   display: grid;
   grid-template-columns: 120px 1fr;
@@ -361,6 +407,7 @@ form {
   .write-actions,
   form,
   dl,
+  .warning-row,
   .walklog-row,
   .device-row {
     grid-template-columns: 1fr;

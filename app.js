@@ -48,6 +48,8 @@ const els = {
   exportButton: document.getElementById("exportButton"),
   importInput: document.getElementById("importInput"),
   deviceList: document.getElementById("deviceList"),
+  warningCount: document.getElementById("warningCount"),
+  warningList: document.getElementById("warningList"),
   walkLogCount: document.getElementById("walkLogCount"),
   walkLogList: document.getElementById("walkLogList"),
   downloadLogButton: document.getElementById("downloadLogButton"),
@@ -71,10 +73,8 @@ function init() {
   const idFromUrl = new URLSearchParams(location.search).get("id");
   if (idFromUrl) {
     findAndShow(idFromUrl);
-  } else if (state.devices.length) {
-    showDevice(state.devices[0]);
   } else {
-    showUnknown("Bereit", "DGUV NFC Check", "Testdaten laden oder erstes Gerät speichern.");
+    showStart();
   }
 
   els.scanButton.addEventListener("click", scanNfc);
@@ -82,7 +82,10 @@ function init() {
   els.writeTextButton.addEventListener("click", () => writeNfc("text"));
   els.copyUrlButton.addEventListener("click", copyCurrentUrl);
   els.searchButton.addEventListener("click", () => findAndShow(els.tagInput.value));
-  els.inspectorInput.addEventListener("input", () => localStorage.setItem(INSPECTOR_KEY, els.inspectorInput.value.trim()));
+  els.inspectorInput.addEventListener("input", () => {
+    localStorage.setItem(INSPECTOR_KEY, els.inspectorInput.value.trim());
+    renderWarnings();
+  });
   els.tagInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") findAndShow(els.tagInput.value);
   });
@@ -97,6 +100,7 @@ function init() {
   els.clearLogButton.addEventListener("click", clearWalkLog);
   renderList();
   renderWalkLog();
+  renderWarnings();
 
   if (els.sheetUrlInput.value) {
     loadFromSheet();
@@ -131,10 +135,11 @@ async function loadFromSheet() {
     state.devices = devices;
     persist();
     renderList();
+    renderWarnings();
     if (state.currentTag) {
-      findAndShow(state.currentTag);
+      findAndShow(state.currentTag, "Anzeige", false);
     } else {
-      showDevice(state.devices[0]);
+      showStart();
     }
     els.nfcHint.textContent = `Sheet geladen: ${devices.length} Geräte.`;
   } catch (error) {
@@ -244,7 +249,7 @@ function normalizeKnownTagPrefix(tag) {
   return match ? match[1] : tag;
 }
 
-function findAndShow(input, source = "Manuell") {
+function findAndShow(input, source = "Manuell", shouldLog = true) {
   let tag = normalizeTag(input);
   els.tagInput.value = tag;
   state.currentTag = tag;
@@ -272,11 +277,11 @@ function findAndShow(input, source = "Manuell") {
   if (!device) {
     showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Keine Daten für ${tag}` : "Keine Tag-ID eingegeben.");
     setDetails({ tagId: tag });
-    if (tag) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
+    if (tag && shouldLog) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
     return;
   }
   showDevice(device);
-  logWalkCheck({ ...device, status: getStatusLabel(getCheckStatus(device.nextCheck)), source });
+  if (shouldLog) logWalkCheck({ ...device, status: getStatusLabel(getCheckStatus(device.nextCheck)), source });
 }
 
 function showDevice(device) {
@@ -306,6 +311,14 @@ function showUnknown(kicker, title, subline) {
   els.statusSubline.textContent = subline;
 }
 
+function showStart() {
+  els.statusPanel.className = "status-panel start";
+  els.statusKicker.textContent = "Bereit";
+  els.statusText.textContent = "Bitte erstes Gerät scannen";
+  els.statusSubline.textContent = "NFC-Tag halten oder Tag-ID eingeben.";
+  setDetails({});
+}
+
 function setDetails(device = {}) {
   els.partValue.textContent = device.part || "-";
   els.dateValue.textContent = device.nextCheck ? formatDate(device.nextCheck) : "-";
@@ -331,6 +344,17 @@ function getCheckStatus(dateValue) {
   return "valid";
 }
 
+function getWarningStatus(dateValue) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const check = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(check.getTime())) return "unknown";
+  const diffDays = Math.ceil((check.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return "invalid";
+  if (diffDays <= 60) return "soon";
+  return "valid";
+}
+
 function getStatusLabel(status) {
   if (status === "valid") return "Geprüft und iO";
   if (status === "soon") return "Bald prüfen";
@@ -352,6 +376,7 @@ function saveDeviceFromForm(event) {
     nextCheck: els.formDate.value,
     lab: els.formLab.value.trim(),
     place: els.formPlace.value.trim(),
+    inspector: els.inspectorInput.value.trim(),
   };
 
   const existing = state.devices.findIndex((item) => normalizeTag(item.tagId) === device.tagId);
@@ -363,6 +388,7 @@ function saveDeviceFromForm(event) {
 
   persist();
   renderList();
+  renderWarnings();
   showDevice(device);
   els.form.reset();
 }
@@ -371,6 +397,7 @@ function addDemoData() {
   state.devices = [...DEFAULT_DEVICES];
   persist();
   renderList();
+  renderWarnings();
   showDevice(state.devices[0]);
 }
 
@@ -389,6 +416,7 @@ function renderList() {
       </div>
       <div class="row-actions">
         <button type="button" data-action="show" data-id="${escapeHtml(device.tagId)}">Anzeigen</button>
+        <button type="button" data-action="assign" data-id="${escapeHtml(device.tagId)}">Tag zuweisen</button>
         <button type="button" data-action="delete" data-id="${escapeHtml(device.tagId)}">Löschen</button>
       </div>
     `;
@@ -402,11 +430,66 @@ function renderList() {
         state.devices = state.devices.filter((item) => normalizeTag(item.tagId) !== normalizeTag(id));
         persist();
         renderList();
+        renderWarnings();
+      } else if (button.getAttribute("data-action") === "assign") {
+        assignCurrentTag(id);
       } else {
-        findAndShow(id);
+        findAndShow(id, "Anzeige", false);
       }
     });
   });
+}
+
+function assignCurrentTag(oldId) {
+  const newTag = normalizeTag(els.tagInput.value || state.currentTag);
+  if (!newTag) {
+    els.nfcHint.textContent = "Erst neue Tag-ID scannen oder eingeben.";
+    return;
+  }
+
+  const index = state.devices.findIndex((item) => normalizeTag(item.tagId) === normalizeTag(oldId));
+  if (index < 0) return;
+
+  state.devices[index] = { ...state.devices[index], tagId: newTag };
+  persist();
+  renderList();
+  renderWarnings();
+  findAndShow(newTag, "Anzeige", false);
+  els.nfcHint.textContent = `Tag ${newTag} zugewiesen.`;
+}
+
+function renderWarnings() {
+  const selectedInspector = els.inspectorInput.value.trim().toLowerCase();
+  const warnings = state.devices
+    .map((device) => ({ device, status: getWarningStatus(device.nextCheck) }))
+    .filter((item) => {
+      const owner = String(item.device.inspector || "").trim().toLowerCase();
+      return !owner || !selectedInspector || owner === selectedInspector;
+    })
+    .filter((item) => item.status !== "valid")
+    .sort((a, b) => String(a.device.nextCheck).localeCompare(String(b.device.nextCheck)));
+
+  els.warningCount.textContent = `${warnings.length} Geräte`;
+  els.warningList.innerHTML = "";
+
+  if (!warnings.length) {
+    els.warningList.innerHTML = `<p class="hint">Keine fälligen Geräte in den nächsten 2 Monaten.</p>`;
+    return;
+  }
+
+  for (const item of warnings) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `warning-row ${item.status}`;
+    row.innerHTML = `
+      <strong>${escapeHtml(item.device.tagId)}</strong>
+      <span>${escapeHtml(getStatusLabel(item.status))}</span>
+      <small>${escapeHtml(item.device.part)} · ${formatDate(item.device.nextCheck)} · ${escapeHtml(item.device.lab)} · ${escapeHtml(item.device.place)}</small>
+      <small>Prüfer: ${escapeHtml(item.device.inspector || "alle")}</small>
+    `;
+    row.addEventListener("click", () => findAndShow(item.device.tagId, "Anzeige", false));
+    els.warningList.appendChild(row);
+  }
 }
 
 function logWalkCheck(entry) {
@@ -528,10 +611,12 @@ async function importJson(event) {
     nextCheck: String(item.nextCheck || "").trim(),
     lab: String(item.lab || "").trim(),
     place: String(item.place || "").trim(),
+    inspector: String(item.inspector || "").trim(),
   }));
   persist();
   renderList();
-  if (state.devices[0]) showDevice(state.devices[0]);
+  renderWarnings();
+  showStart();
 }
 
 function parseDevicesCsv(csv) {
@@ -556,6 +641,7 @@ function parseDevicesCsv(csv) {
         ),
         lab: String(record.labor || "").trim(),
         place: String(record.ort || record.standort || "").trim(),
+        inspector: String(record.pruefer || record.inspector || "").trim(),
       };
     })
     .filter((device) => device.tagId && device.part && device.nextCheck);

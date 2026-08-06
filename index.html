@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body>
     <main class="app-shell">
@@ -19,7 +19,10 @@
       <section class="controls" aria-label="Scan und Suche">
         <label class="inspector-field" for="inspectorInput">
           Prüfer
-          <input id="inspectorInput" autocomplete="name" placeholder="Name vor Rundgang eintragen" />
+          <select id="inspectorInput">
+            <option value="Peschel">Peschel</option>
+            <option value="Kittelmann">Kittelmann</option>
+          </select>
         </label>
         <button class="primary" id="scanButton" type="button">NFC scannen</button>
         <div class="manual-search">
@@ -76,6 +79,14 @@
         <div class="walklog-list" id="walkLogList"></div>
       </section>
 
+      <section class="warnings" aria-label="Prüfwarnungen">
+        <div class="section-title">
+          <h2>Prüfwarnungen</h2>
+          <span id="warningCount">0 Geräte</span>
+        </div>
+        <div class="warning-list" id="warningList"></div>
+      </section>
+
       <section class="inventory" aria-label="Geräte verwalten">
         <div class="section-title">
           <h2>Geräte</h2>
@@ -119,7 +130,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
   </body>
 </html>
 
