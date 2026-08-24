@@ -15,6 +15,7 @@ const state = {
   devices: loadDevices(),
   walkLog: loadWalkLog(),
   currentTag: "",
+  currentInput: "",
   writerCount: 0,
 };
 
@@ -198,7 +199,7 @@ async function loadFromSheet() {
     renderList();
     renderWarnings();
     if (state.currentTag) {
-      findAndShow(state.currentTag, "Anzeige", false);
+      findAndShow(state.currentInput || state.currentTag, "Anzeige", false);
     } else {
       showStart();
     }
@@ -493,6 +494,7 @@ function getCurrentDevice(tagId) {
 }
 
 function findAndShow(input, source = "Manuell", shouldLog = true) {
+  state.currentInput = input;
   let tag = normalizeTag(input);
   els.tagInput.value = tag;
   state.currentTag = tag;
