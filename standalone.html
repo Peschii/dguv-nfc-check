@@ -2073,9 +2073,11 @@ async function downloadReportPng() {
     return;
   }
   const stats = getRowsStats(reportRows);
+  const inspectors = summarizeReportField("inspector");
+  const labs = summarizeReportField("lab");
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
-  canvas.height = 720;
+  canvas.height = 780;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#101722";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2085,6 +2087,8 @@ async function downloadReportPng() {
   ctx.font = "24px Arial";
   ctx.fillStyle = "#cbd5e1";
   ctx.fillText(`Erstellt am ${new Date().toLocaleString("de-DE")}`, 60, 116);
+  ctx.fillText(`Prüfer: ${inspectors}`, 60, 150);
+  ctx.fillText(`Labor: ${labs}`, 60, 184);
 
   const cards = [
     ["Geprüft und iO", stats.valid, "#16a34a"],
@@ -2095,7 +2099,7 @@ async function downloadReportPng() {
   ];
   cards.forEach(([label, value, color], index) => {
     const x = 60 + index * 220;
-    const y = 170;
+    const y = 230;
     ctx.fillStyle = "#182232";
     ctx.fillRect(x, y, 190, 170);
     ctx.fillStyle = color;
@@ -2109,16 +2113,16 @@ async function downloadReportPng() {
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 28px Arial";
-  ctx.fillText("Protokoll", 60, 410);
+  ctx.fillText("Protokoll", 60, 470);
   ctx.font = "20px Arial";
   ctx.fillStyle = "#cbd5e1";
   const previewRows = reportRows.slice(0, 8);
   previewRows.forEach((row, index) => {
-    const y = 450 + index * 30;
+    const y = 510 + index * 30;
     ctx.fillText(`${row.tagId || "-"} · ${row.status || "-"} · ${row.part || "-"} · ${row.nextCheck || "-"}`, 60, y);
   });
   if (reportRows.length > previewRows.length) {
-    ctx.fillText(`... plus ${reportRows.length - previewRows.length} weitere`, 60, 450 + previewRows.length * 30);
+    ctx.fillText(`... plus ${reportRows.length - previewRows.length} weitere`, 60, 510 + previewRows.length * 30);
   }
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
@@ -2149,6 +2153,13 @@ async function downloadReportPng() {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   els.reportCount.textContent = "PNG erstellt";
+}
+
+function summarizeReportField(field) {
+  const values = [...new Set(reportRows.map((row) => String(row[field] || "").trim()).filter(Boolean))];
+  if (!values.length) return "-";
+  if (values.length <= 3) return values.join(", ");
+  return `${values.slice(0, 3).join(", ")} + ${values.length - 3} weitere`;
 }
 
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
