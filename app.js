@@ -534,6 +534,7 @@ function showDevice(device) {
   state.currentTag = normalizeTag(device.tagId);
   const status = getCheckStatus(device.nextCheck);
   const overdueDays = getOverdueDays(device.nextCheck);
+  const daysUntilDue = getDaysUntilDue(device.nextCheck);
   els.statusPanel.className = `status-panel ${status}`;
   els.statusKicker.textContent = device.part || device.tagId;
   els.statusText.textContent =
@@ -545,7 +546,7 @@ function showDevice(device) {
   const lines = status === "valid"
     ? [`Tag: ${device.tagId}`, `Nächste Prüfung: ${formatDate(device.nextCheck)}`]
     : status === "soon"
-      ? [`Tag: ${device.tagId}`, `Innerhalb 1 Monat`, `Fällig am: ${formatDate(device.nextCheck)}`]
+      ? [`Tag: ${device.tagId}`, `Fällig am: ${formatDate(device.nextCheck)}`, `Noch ${daysUntilDue} ${daysUntilDue === 1 ? "Tag" : "Tage"} bis fällig`]
       : [`Tag: ${device.tagId}`, `Fällig seit: ${formatDate(device.nextCheck)}`, `${overdueDays} ${overdueDays === 1 ? "Tag" : "Tage"} drüber`];
   els.statusSubline.innerHTML = lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("");
   setDetails(device);
@@ -654,6 +655,14 @@ function getOverdueDays(dateValue) {
   const check = new Date(`${dateValue}T00:00:00`);
   if (Number.isNaN(check.getTime())) return 0;
   return Math.max(0, Math.floor((today.getTime() - check.getTime()) / 86400000));
+}
+
+function getDaysUntilDue(dateValue) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const check = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(check.getTime())) return 0;
+  return Math.max(0, Math.ceil((check.getTime() - today.getTime()) / 86400000));
 }
 
 function getStatusLabel(status) {
