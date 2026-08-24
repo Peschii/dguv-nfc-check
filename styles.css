@@ -17,7 +17,7 @@ body {
 
 .mode-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -120,6 +120,7 @@ h1 {
 .details,
 .inventory,
 .writer-page,
+.report-page,
 .warnings,
 .walklog,
 .tomorrow {
@@ -187,6 +188,80 @@ select {
   padding: 0 12px;
   background: #101722;
   color: #eef4f8;
+}
+
+textarea {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid #3d4d63;
+  background: #0f172a;
+  color: #eef4f8;
+  padding: 12px;
+  font: 14px Consolas, monospace;
+  resize: vertical;
+}
+
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.report-card {
+  padding: 12px;
+  border: 1px solid #2d3b4f;
+  background: #141d2a;
+  color: #eef4f8;
+}
+
+.report-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 32px;
+}
+
+.report-card.valid {
+  border-left: 8px solid #16a34a;
+}
+
+.report-card.soon {
+  border-left: 8px solid #ffd12d;
+}
+
+.report-card.invalid {
+  border-left: 8px solid #ff3b45;
+}
+
+.report-card.unknown {
+  border-left: 8px solid #ff1493;
+}
+
+.report-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-top: 14px;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+  background: #eef4f8;
+  color: #101722;
+}
+
+.report-table th,
+.report-table td {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-table th {
+  background: #0f172a;
+  color: white;
 }
 
 .hint {

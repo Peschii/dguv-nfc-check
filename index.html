@@ -6,14 +6,57 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="styles.css?v=26" />
   </head>
   <body>
     <main class="app-shell">
       <nav class="mode-tabs" aria-label="Modus">
         <button class="active" id="checkModeButton" type="button">Prüfen</button>
+        <button id="reportModeButton" type="button">Auswertung</button>
         <button id="writeModeButton" type="button">Tags beschreiben</button>
       </nav>
+
+      <section class="report-page view-hidden" id="reportPage" aria-label="Rundgang auswerten">
+        <div class="section-title">
+          <h2>Rundgang auswerten</h2>
+          <span id="reportCount">0 Einträge</span>
+        </div>
+        <label>
+          Mailinhalt einfügen
+          <textarea id="reportInput" placeholder="Mailinhalt aus dem DGUV Tool hier einfügen..."></textarea>
+        </label>
+        <div class="data-actions">
+          <button id="reportAnalyzeButton" type="button">Auswerten</button>
+          <button id="reportMailButton" type="button">Bericht per E-Mail</button>
+          <button id="reportHtmlButton" type="button">Bericht für Teams herunterladen</button>
+          <button id="reportCsvButton" type="button">CSV herunterladen</button>
+        </div>
+        <div class="report-summary" id="reportSummary">
+          <div class="report-card valid"><span>Geprüft und iO</span><strong id="reportOk">0</strong></div>
+          <div class="report-card soon"><span>Bald prüfen</span><strong id="reportSoon">0</strong></div>
+          <div class="report-card invalid"><span>Dringend Prüfung veranlassen</span><strong id="reportBad">0</strong></div>
+          <div class="report-card unknown"><span>Unbekannt</span><strong id="reportUnknown">0</strong></div>
+          <div class="report-card total"><span>Gesamt</span><strong id="reportTotal">0</strong></div>
+        </div>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Zeit</th>
+                <th>Prüfer</th>
+                <th>Quelle</th>
+                <th>Tag-ID</th>
+                <th>Ergebnis</th>
+                <th>Gerätename</th>
+                <th>Fälligkeitsdatum</th>
+                <th>Labor</th>
+                <th>Ort</th>
+              </tr>
+            </thead>
+            <tbody id="reportRows"></tbody>
+          </table>
+        </div>
+      </section>
 
       <section class="writer-page view-hidden" id="writerPage" aria-label="Tags beschreiben">
         <div class="section-title">
@@ -186,7 +229,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=25"></script>
+    <script src="app.js?v=26"></script>
   </body>
 </html>
 

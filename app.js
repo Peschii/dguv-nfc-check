@@ -22,7 +22,9 @@ const state = {
 const els = {
   checkModeButton: document.getElementById("checkModeButton"),
   writeModeButton: document.getElementById("writeModeButton"),
+  reportModeButton: document.getElementById("reportModeButton"),
   writerPage: document.getElementById("writerPage"),
+  reportPage: document.getElementById("reportPage"),
   checkViews: document.querySelectorAll(".check-view"),
   statusPanel: document.getElementById("statusPanel"),
   statusKicker: document.getElementById("statusKicker"),
@@ -62,6 +64,18 @@ const els = {
   downloadLogButton: document.getElementById("downloadLogButton"),
   emailLogButton: document.getElementById("emailLogButton"),
   clearLogButton: document.getElementById("clearLogButton"),
+  reportInput: document.getElementById("reportInput"),
+  reportAnalyzeButton: document.getElementById("reportAnalyzeButton"),
+  reportMailButton: document.getElementById("reportMailButton"),
+  reportHtmlButton: document.getElementById("reportHtmlButton"),
+  reportCsvButton: document.getElementById("reportCsvButton"),
+  reportCount: document.getElementById("reportCount"),
+  reportOk: document.getElementById("reportOk"),
+  reportSoon: document.getElementById("reportSoon"),
+  reportBad: document.getElementById("reportBad"),
+  reportUnknown: document.getElementById("reportUnknown"),
+  reportTotal: document.getElementById("reportTotal"),
+  reportRows: document.getElementById("reportRows"),
   writerForm: document.getElementById("writerForm"),
   writerInspector: document.getElementById("writerInspector"),
   writerDueDate: document.getElementById("writerDueDate"),
@@ -87,6 +101,7 @@ let pcscPollTimer = null;
 let lastPcscUid = '';
 let lastPcscData = '';
 let pcscPollBusy = false;
+let reportRows = [];
 
 init();
 
@@ -118,6 +133,7 @@ function init() {
   els.scanButton.addEventListener("click", scanNfc);
   els.checkModeButton.addEventListener("click", () => setMode("check"));
   els.writeModeButton.addEventListener("click", () => setMode("write"));
+  els.reportModeButton.addEventListener("click", () => setMode("report"));
   els.writeUrlButton.addEventListener("click", () => writeNfc("url"));
   els.writeTextButton.addEventListener("click", () => writeNfc("text"));
   els.copyUrlButton.addEventListener("click", copyCurrentUrl);
@@ -138,6 +154,11 @@ function init() {
   els.downloadLogButton.addEventListener("click", downloadWalkLog);
   els.emailLogButton.addEventListener("click", emailWalkLog);
   els.clearLogButton.addEventListener("click", clearWalkLog);
+  els.reportAnalyzeButton.addEventListener("click", analyzeReportInput);
+  els.reportInput.addEventListener("input", analyzeReportInput);
+  els.reportMailButton.addEventListener("click", emailReport);
+  els.reportHtmlButton.addEventListener("click", downloadReportHtml);
+  els.reportCsvButton.addEventListener("click", downloadReportCsv);
   els.connectUsbButton.addEventListener("click", connectUsbNfc);
   els.writerForm.addEventListener("submit", writePreparedTag);
   els.savePreparedButton.addEventListener("click", () => savePreparedDevice(true));
@@ -162,11 +183,15 @@ function init() {
 
 function setMode(mode) {
   const writing = mode === "write";
+  const reporting = mode === "report";
   els.writerPage.classList.toggle("view-hidden", !writing);
-  els.checkViews.forEach((section) => section.classList.toggle("view-hidden", writing));
+  els.reportPage.classList.toggle("view-hidden", !reporting);
+  els.checkViews.forEach((section) => section.classList.toggle("view-hidden", writing || reporting));
   els.writeModeButton.classList.toggle("active", writing);
-  els.checkModeButton.classList.toggle("active", !writing);
+  els.reportModeButton.classList.toggle("active", reporting);
+  els.checkModeButton.classList.toggle("active", !writing && !reporting);
   if (writing) els.writerPart.focus();
+  if (reporting) els.reportInput.focus();
 }
 
 function saveSheetUrl() {
@@ -1029,6 +1054,175 @@ function clearWalkLog() {
   state.walkLog = [];
   persistWalkLog();
   renderWalkLog();
+}
+
+function analyzeReportInput() {
+  reportRows = parseReportText(els.reportInput.value);
+  renderReport();
+}
+
+function parseReportText(text) {
+  return String(text || "")
+    .split(/\r?\n/)
+    .filter((line) => (line.match(/;/g) || []).length >= 8)
+    .map(parseCsvLine)
+    .filter((row) => row[0] && row[0] !== "Zeit")
+    .map((row) => ({
+      localTime: row[0] || "",
+      inspector: row[1] || "",
+      source: row[2] || "",
+      tagId: row[3] || "",
+      status: row[4] || "Unbekannt",
+      part: row[5] || "",
+      nextCheck: row[6] || "",
+      lab: row[7] || "",
+      place: row[8] || "",
+    }));
+}
+
+function parseCsvLine(line) {
+  const cells = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === "\"" && quoted && next === "\"") {
+      value += "\"";
+      index += 1;
+    } else if (char === "\"") {
+      quoted = !quoted;
+    } else if (char === ";" && !quoted) {
+      cells.push(value);
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+  cells.push(value);
+  return cells;
+}
+
+function renderReport() {
+  const stats = getRowsStats(reportRows);
+  els.reportOk.textContent = stats.valid;
+  els.reportSoon.textContent = stats.soon;
+  els.reportBad.textContent = stats.invalid;
+  els.reportUnknown.textContent = stats.unknown;
+  els.reportTotal.textContent = stats.total;
+  els.reportCount.textContent = `${stats.total} Einträge`;
+  els.reportRows.innerHTML = "";
+  for (const row of reportRows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = [
+      row.localTime,
+      row.inspector,
+      row.source,
+      row.tagId,
+      row.status,
+      row.part,
+      row.nextCheck,
+      row.lab,
+      row.place,
+    ].map((cell) => `<td>${escapeHtml(cell || "")}</td>`).join("");
+    els.reportRows.appendChild(tr);
+  }
+}
+
+function getRowsStats(rows) {
+  return rows.reduce(
+    (stats, row) => {
+      if (row.status === "Geprüft und iO") stats.valid += 1;
+      else if (row.status === "Bald prüfen") stats.soon += 1;
+      else if (row.status === "Dringend Prüfung veranlassen") stats.invalid += 1;
+      else stats.unknown += 1;
+      stats.total += 1;
+      return stats;
+    },
+    { valid: 0, soon: 0, invalid: 0, unknown: 0, total: 0 }
+  );
+}
+
+function emailReport() {
+  analyzeReportInput();
+  if (!reportRows.length) {
+    els.reportCount.textContent = "Kein Protokoll erkannt";
+    return;
+  }
+  const stats = getRowsStats(reportRows);
+  const subject = encodeURIComponent(`DGUV Rundgang Auswertung ${new Date().toLocaleDateString("de-DE")}`);
+  const body = encodeURIComponent([
+    `DGUV Rundgang Auswertung ${new Date().toLocaleString("de-DE")}`,
+    "",
+    `Geprüft und iO: ${stats.valid}`,
+    `Bald prüfen: ${stats.soon}`,
+    `Dringend Prüfung veranlassen: ${stats.invalid}`,
+    `Unbekannt: ${stats.unknown}`,
+    `Gesamt: ${stats.total}`,
+    "",
+    "Protokoll:",
+    buildRowsCsv(reportRows),
+  ].join("\r\n"));
+  location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function downloadReportCsv() {
+  analyzeReportInput();
+  if (!reportRows.length) return;
+  downloadBlob(`dguv-auswertung-${new Date().toISOString().slice(0, 10)}.csv`, `\uFEFF${buildRowsCsv(reportRows)}`, "text/csv;charset=utf-8");
+}
+
+function downloadReportHtml() {
+  analyzeReportInput();
+  if (!reportRows.length) return;
+  const stats = getRowsStats(reportRows);
+  const rowsHtml = reportRows.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.localTime)}</td>
+      <td>${escapeHtml(row.inspector)}</td>
+      <td>${escapeHtml(row.source)}</td>
+      <td>${escapeHtml(row.tagId)}</td>
+      <td>${escapeHtml(row.status)}</td>
+      <td>${escapeHtml(row.part)}</td>
+      <td>${escapeHtml(row.nextCheck)}</td>
+      <td>${escapeHtml(row.lab)}</td>
+      <td>${escapeHtml(row.place)}</td>
+    </tr>`).join("");
+  const html = `<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>DGUV Rundgang Auswertung</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#111827}h1{margin:0 0 16px}.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}.card{border:1px solid #cbd5e1;padding:12px}.card strong{display:block;font-size:28px}.ok{border-top:8px solid #16a34a}.soon{border-top:8px solid #facc15}.bad{border-top:8px solid #dc2626}.unknown{border-top:8px solid #ec4899}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left}th{background:#1e3a8a;color:white}
+</style></head><body>
+<h1>DGUV Rundgang Auswertung</h1>
+<p>Erstellt am ${escapeHtml(new Date().toLocaleString("de-DE"))}</p>
+<div class="cards">
+<div class="card ok"><span>Geprüft und iO</span><strong>${stats.valid}</strong></div>
+<div class="card soon"><span>Bald prüfen</span><strong>${stats.soon}</strong></div>
+<div class="card bad"><span>Dringend Prüfung veranlassen</span><strong>${stats.invalid}</strong></div>
+<div class="card unknown"><span>Unbekannt</span><strong>${stats.unknown}</strong></div>
+<div class="card"><span>Gesamt</span><strong>${stats.total}</strong></div>
+</div>
+<table><thead><tr><th>Zeit</th><th>Prüfer</th><th>Quelle</th><th>Tag-ID</th><th>Ergebnis</th><th>Gerätename</th><th>Fälligkeitsdatum</th><th>Labor</th><th>Ort</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+</body></html>`;
+  downloadBlob(`dguv-auswertung-${new Date().toISOString().slice(0, 10)}.html`, html, "text/html;charset=utf-8");
+}
+
+function buildRowsCsv(rows) {
+  const data = [
+    ["Zeit", "Prüfer", "Quelle", "Tag-ID", "Ergebnis", "Gerätename", "Fälligkeitsdatum", "Labor", "Ort"],
+    ...rows.map((row) => [row.localTime, row.inspector, row.source, row.tagId, row.status, row.part, row.nextCheck, row.lab, row.place]),
+  ];
+  return data.map((row) => row.map(csvCell).join(";")).join("\r\n");
+}
+
+function downloadBlob(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function exportJson() {
