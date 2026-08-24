@@ -1251,10 +1251,13 @@ body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#111827}h1{margin:
   downloadBlob(`dguv-auswertung-${new Date().toISOString().slice(0, 10)}.html`, html, "text/html;charset=utf-8");
 }
 
-function downloadReportPng() {
+async function downloadReportPng() {
   if (els.reportInput.value.trim()) analyzeReportInput();
   else if (!reportRows.length) useCurrentWalkLogForReport();
-  if (!reportRows.length) return;
+  if (!reportRows.length) {
+    els.reportCount.textContent = "Kein Rundgang für PNG";
+    return;
+  }
   const stats = getRowsStats(reportRows);
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
@@ -1304,10 +1307,34 @@ function downloadReportPng() {
     ctx.fillText(`... plus ${reportRows.length - previewRows.length} weitere`, 60, 450 + previewRows.length * 30);
   }
 
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) {
+    els.reportCount.textContent = "PNG konnte nicht erstellt werden";
+    return;
+  }
+  const filename = `dguv-auswertung-${new Date().toISOString().slice(0, 10)}.png`;
+  const file = new File([blob], filename, { type: "image/png" });
+  if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+    try {
+      await navigator.share({
+        title: "DGUV Rundgang Auswertung",
+        text: "DGUV Rundgang Auswertung",
+        files: [file],
+      });
+      return;
+    } catch {
+      // Fallback to download/open below.
+    }
+  }
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = canvas.toDataURL("image/png");
-  link.download = `dguv-auswertung-${new Date().toISOString().slice(0, 10)}.png`;
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  els.reportCount.textContent = "PNG erstellt";
 }
 
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
