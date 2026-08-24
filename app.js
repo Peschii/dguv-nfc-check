@@ -4,8 +4,6 @@ const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
 const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
 const WRITER_KEY = "dguv-nfc-writer-v1";
 const PUBLIC_APP_URL = "https://peschii.github.io/dguv-nfc-check/";
-const CHECK_VALID_YEARS = 2;
-
 const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
   { tagId: "EL-002", part: "Altes Kabel", nextCheck: "2025-01-01", lab: "Labor 1", place: "Schrank A" },
@@ -66,6 +64,7 @@ const els = {
   writerForm: document.getElementById("writerForm"),
   writerInspector: document.getElementById("writerInspector"),
   writerDate: document.getElementById("writerDate"),
+  writerDateMode: document.getElementById("writerDateMode"),
   writerLab: document.getElementById("writerLab"),
   writerPlace: document.getElementById("writerPlace"),
   writerTag: document.getElementById("writerTag"),
@@ -142,7 +141,7 @@ function init() {
   els.writerForm.addEventListener("submit", writePreparedTag);
   els.savePreparedButton.addEventListener("click", () => savePreparedDevice(true));
   els.nextPreparedButton.addEventListener("click", nextPreparedDevice);
-  [els.writerInspector, els.writerDate, els.writerLab, els.writerPlace, els.writerTag, els.writerPart].forEach((input) => {
+  [els.writerInspector, els.writerDate, els.writerDateMode, els.writerLab, els.writerPlace, els.writerTag, els.writerPart].forEach((input) => {
     input.addEventListener("input", () => {
       saveWriterDefaults();
       renderWriterPreview();
@@ -520,7 +519,7 @@ function findAndShow(input, source = "Manuell", shouldLog = true) {
     device = deviceFromTagPayload(input);
   }
   if (!device) {
-    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Prüfdatum fehlt für ${tag}. Tag muss date=YYYY-MM-DD enthalten.` : "Keine Tag-ID eingegeben.");
+    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Fälligkeitsdatum fehlt für ${tag}. Tag muss date=YYYY-MM-DD enthalten.` : "Keine Tag-ID eingegeben.");
     setDetails({ tagId: tag });
     if (tag && shouldLog) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
     return;
@@ -577,9 +576,8 @@ function buildDeviceUrl(tagId, device = {}) {
   const isLocal = ["127.0.0.1", "localhost"].includes(location.hostname);
   const base = isLocal ? PUBLIC_APP_URL : `${location.origin}${location.pathname}`;
   const params = new URLSearchParams({ id: normalizeTag(tagId) });
-  const testDate = normalizeDate(device.testDate || device.pruefdatum || device.checked || "")
-    || addYears(normalizeDate(device.nextCheck || ""), -CHECK_VALID_YEARS);
-  if (testDate) params.set("date", testDate);
+  const dueDate = normalizeDate(device.nextCheck || device.dueDate || device.faellig || device.fallig || "");
+  if (dueDate) params.set("date", dueDate);
   return `${base.replace(/[?#].*$/, "").replace(/\/$/, "")}/?${params.toString().replace(/\+/g, "%20")}`;
 }
 
@@ -601,14 +599,13 @@ function deviceFromTagPayload(input) {
   } catch {
     params = new URLSearchParams(raw.replace(/^\?/, ""));
   }
-  const dateMatch = raw.match(/(?:[?&]|%26)(?:date|pruefdatum|checked)(?:=|%3D)(\d{4}-\d{2}-\d{2})/i);
-  const testDate = normalizeDate(params.get("date") || params.get("pruefdatum") || params.get("checked") || (dateMatch ? dateMatch[1] : ""));
-  if (!testDate) return null;
+  const dateMatch = raw.match(/(?:[?&]|%26)(?:date|due|faellig|fallig|nextCheck)(?:=|%3D)(\d{4}-\d{2}-\d{2})/i);
+  const dueDate = normalizeDate(params.get("date") || params.get("due") || params.get("faellig") || params.get("fallig") || params.get("nextCheck") || (dateMatch ? dateMatch[1] : ""));
+  if (!dueDate) return null;
   return {
     tagId,
     part: tagId,
-    testDate,
-    nextCheck: addYears(testDate, CHECK_VALID_YEARS),
+    nextCheck: dueDate,
     lab: "",
     place: "",
     inspector: "",
@@ -699,19 +696,20 @@ function savePreparedDevice(showFeedback) {
 }
 
 function buildPreparedDevice() {
-  const testDate = els.writerDate.value;
+  const enteredDate = els.writerDate.value;
+  const dateMode = els.writerDateMode.value;
+  const dueDate = dateMode === "checked" ? addYears(enteredDate, 2) : enteredDate;
   const device = {
     tagId: normalizeTag(els.writerTag.value),
     part: els.writerPart.value.trim(),
-    testDate,
-    nextCheck: addYears(testDate, CHECK_VALID_YEARS),
+    nextCheck: dueDate,
     lab: els.writerLab.value.trim(),
     place: els.writerPlace.value.trim(),
     inspector: els.writerInspector.value.trim(),
   };
 
-  if (!device.tagId || !device.part || !device.testDate || !device.lab || !device.place) {
-    els.writerHint.textContent = "Tag-ID, Bauteil, Prüfdatum, Labor und Ort müssen gefüllt sein.";
+  if (!device.tagId || !device.part || !device.nextCheck || !device.lab || !device.place) {
+    els.writerHint.textContent = "Tag-ID, Bauteil, Datum, Labor und Ort müssen gefüllt sein.";
     return null;
   }
   saveWriterDefaults();
@@ -836,10 +834,15 @@ function renderWarnings() {
 
 function renderWriterPreview() {
   const tag = normalizeTag(els.writerTag.value);
-  const url = tag ? buildDeviceUrl(tag, { testDate: els.writerDate.value }) : "-";
-  const nextCheck = addYears(els.writerDate.value, CHECK_VALID_YEARS);
+  const enteredDate = els.writerDate.value;
+  const dateMode = els.writerDateMode.value;
+  const dueDate = dateMode === "checked" ? addYears(enteredDate, 2) : enteredDate;
+  const url = tag ? buildDeviceUrl(tag, { nextCheck: dueDate }) : "-";
+  const dateLabel = dateMode === "checked"
+    ? `geprüft: ${formatDate(enteredDate)} · fällig: ${formatDate(dueDate)}`
+    : `fällig: ${formatDate(dueDate)}`;
   els.writerPreview.textContent = tag
-    ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · geprüft: ${formatDate(els.writerDate.value)} · fällig: ${formatDate(nextCheck)} · ${url}`
+    ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · ${dateLabel} · ${url}`
     : "-";
 }
 
@@ -1206,7 +1209,8 @@ function loadWriterDefaults() {
   try {
     const defaults = JSON.parse(localStorage.getItem(WRITER_KEY) || "{}");
     els.writerInspector.value = defaults.inspector || localStorage.getItem(INSPECTOR_KEY) || "Peschel";
-    els.writerDate.value = defaults.testDate || defaults.nextCheck || "";
+    els.writerDate.value = defaults.nextCheck || defaults.testDate || "";
+    els.writerDateMode.value = defaults.dateMode || "due";
     els.writerLab.value = defaults.lab || "";
     els.writerPlace.value = defaults.place || "";
     els.writerTag.value = defaults.tagId || "";
@@ -1221,7 +1225,8 @@ function saveWriterDefaults() {
     WRITER_KEY,
     JSON.stringify({
       inspector: els.writerInspector.value.trim(),
-      testDate: els.writerDate.value,
+      nextCheck: els.writerDate.value,
+      dateMode: els.writerDateMode.value,
       lab: els.writerLab.value.trim(),
       place: els.writerPlace.value.trim(),
       tagId: normalizeTag(els.writerTag.value),
