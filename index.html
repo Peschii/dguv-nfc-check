@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=30" />
+    <link rel="stylesheet" href="styles.css?v=31" />
   </head>
   <body>
     <main class="app-shell">
@@ -22,12 +22,9 @@
           <span id="reportCount">0 Einträge</span>
         </div>
         <div class="data-actions">
-          <button id="reportUseCurrentButton" type="button">Aktuellen Rundgang übernehmen</button>
-          <button id="reportAnalyzeButton" type="button">Mailtext auswerten</button>
+          <button id="reportUseCurrentButton" type="button">Aktualisieren</button>
           <button id="reportResetButton" type="button">Neuer Rundgang</button>
-          <button id="reportMailButton" type="button">Bericht per E-Mail</button>
-          <button id="reportHtmlButton" type="button">Bericht für Teams herunterladen</button>
-          <button id="reportCsvButton" type="button">CSV herunterladen</button>
+          <button id="reportPngButton" type="button">PNG herunterladen</button>
         </div>
         <div class="report-summary" id="reportSummary">
           <div class="report-card valid"><span>Geprüft und iO</span><strong id="reportOk">0</strong></div>
@@ -58,6 +55,12 @@
           Mailinhalt einfügen (optional)
           <textarea id="reportInput" placeholder="Mailinhalt aus dem DGUV Tool hier einfügen..."></textarea>
         </label>
+        <div class="data-actions report-extra-actions">
+          <button id="reportAnalyzeButton" type="button">Mailtext auswerten</button>
+          <button id="reportMailButton" type="button">Bericht per E-Mail</button>
+          <button id="reportHtmlButton" type="button">HTML für Teams</button>
+          <button id="reportCsvButton" type="button">CSV</button>
+        </div>
       </section>
 
       <section class="writer-page view-hidden" id="writerPage" aria-label="Tags beschreiben">
@@ -231,7 +234,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=30"></script>
+    <script src="app.js?v=31"></script>
   </body>
 </html>
 

@@ -532,6 +532,8 @@ form {
 
   .manual-search,
   .write-actions,
+  .data-actions,
+  .report-summary,
   form,
   .writer-form,
   dl,
@@ -555,5 +557,19 @@ form {
 
   .row-actions button {
     flex: 1;
+  }
+
+  .mode-tabs {
+    gap: 6px;
+  }
+
+  .mode-tabs button,
+  .data-actions button {
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .report-table {
+    min-width: 860px;
   }
 }

@@ -71,6 +71,7 @@ const els = {
   reportMailButton: document.getElementById("reportMailButton"),
   reportHtmlButton: document.getElementById("reportHtmlButton"),
   reportCsvButton: document.getElementById("reportCsvButton"),
+  reportPngButton: document.getElementById("reportPngButton"),
   reportCount: document.getElementById("reportCount"),
   reportOk: document.getElementById("reportOk"),
   reportSoon: document.getElementById("reportSoon"),
@@ -163,6 +164,7 @@ function init() {
   els.reportMailButton.addEventListener("click", emailReport);
   els.reportHtmlButton.addEventListener("click", downloadReportHtml);
   els.reportCsvButton.addEventListener("click", downloadReportCsv);
+  els.reportPngButton.addEventListener("click", downloadReportPng);
   els.connectUsbButton.addEventListener("click", connectUsbNfc);
   els.writerForm.addEventListener("submit", writePreparedTag);
   els.savePreparedButton.addEventListener("click", () => savePreparedDevice(true));
@@ -1247,6 +1249,81 @@ body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#111827}h1{margin:
 <table><thead><tr><th>Zeit</th><th>Prüfer</th><th>Quelle</th><th>Tag-ID</th><th>Ergebnis</th><th>Gerätename</th><th>Fälligkeitsdatum</th><th>Labor</th><th>Ort</th></tr></thead><tbody>${rowsHtml}</tbody></table>
 </body></html>`;
   downloadBlob(`dguv-auswertung-${new Date().toISOString().slice(0, 10)}.html`, html, "text/html;charset=utf-8");
+}
+
+function downloadReportPng() {
+  if (els.reportInput.value.trim()) analyzeReportInput();
+  else if (!reportRows.length) useCurrentWalkLogForReport();
+  if (!reportRows.length) return;
+  const stats = getRowsStats(reportRows);
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 720;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#101722";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 44px Arial";
+  ctx.fillText("DGUV Rundgang Auswertung", 60, 76);
+  ctx.font = "24px Arial";
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillText(`Erstellt am ${new Date().toLocaleString("de-DE")}`, 60, 116);
+
+  const cards = [
+    ["Geprüft und iO", stats.valid, "#16a34a"],
+    ["Bald prüfen", stats.soon, "#facc15"],
+    ["Dringend Prüfung", stats.invalid, "#dc2626"],
+    ["Unbekannt", stats.unknown, "#ec4899"],
+    ["Gesamt", stats.total, "#60a5fa"],
+  ];
+  cards.forEach(([label, value, color], index) => {
+    const x = 60 + index * 220;
+    const y = 170;
+    ctx.fillStyle = "#182232";
+    ctx.fillRect(x, y, 190, 170);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, 190, 12);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 22px Arial";
+    wrapCanvasText(ctx, label, x + 16, y + 48, 158, 26);
+    ctx.font = "bold 64px Arial";
+    ctx.fillText(String(value), x + 16, y + 138);
+  });
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 28px Arial";
+  ctx.fillText("Protokoll", 60, 410);
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#cbd5e1";
+  const previewRows = reportRows.slice(0, 8);
+  previewRows.forEach((row, index) => {
+    const y = 450 + index * 30;
+    ctx.fillText(`${row.tagId || "-"} · ${row.status || "-"} · ${row.part || "-"} · ${row.nextCheck || "-"}`, 60, y);
+  });
+  if (reportRows.length > previewRows.length) {
+    ctx.fillText(`... plus ${reportRows.length - previewRows.length} weitere`, 60, 450 + previewRows.length * 30);
+  }
+
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = `dguv-auswertung-${new Date().toISOString().slice(0, 10)}.png`;
+  link.click();
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = String(text).split(" ");
+  let line = "";
+  for (const word of words) {
+    const testLine = line ? `${line} ${word}` : word;
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      ctx.fillText(line, x, y);
+      line = word;
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line) ctx.fillText(line, x, y);
 }
 
 function buildRowsCsv(rows) {
