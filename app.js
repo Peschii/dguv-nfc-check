@@ -112,6 +112,8 @@ function init() {
     showStart();
   }
 
+  initLocalPcscAutoDetect();
+
   els.scanButton.addEventListener("click", scanNfc);
   els.checkModeButton.addEventListener("click", () => setMode("check"));
   els.writeModeButton.addEventListener("click", () => setMode("write"));
@@ -280,6 +282,13 @@ async function writePreparedTag(event) {
   }
 }
 
+async function initLocalPcscAutoDetect() {
+  const localPcsc = await tryConnectLocalPcsc();
+  if (localPcsc) {
+    els.nfcHint.textContent = "USB-NFC Auto-Erkennung aktiv. Tag einfach auflegen.";
+  }
+}
+
 async function connectUsbNfc() {
   usbWriterMode = "";
 
@@ -349,9 +358,11 @@ async function checkLocalPcscTag() {
     lastPcscUid = uid;
     lastPcscData = raw;
     els.writerCounter.textContent = "Tag erkannt";
-    els.writerHint.textContent = tag
+    const message = tag
       ? `Tag erkannt: ${tag} · ${uid}. Daten wurden automatisch geladen.`
       : `Tag erkannt: ${uid}${known}. Neuer/leer Tag kann beschrieben werden.`;
+    els.writerHint.textContent = message;
+    els.nfcHint.textContent = message;
     if (tag && changed) applyDetectedLocalTag(tag);
   } catch {
     if (lastPcscUid) {
@@ -359,6 +370,7 @@ async function checkLocalPcscTag() {
       lastPcscData = "";
       els.writerCounter.textContent = "Warte auf Tag";
       els.writerHint.textContent = "Reader verbunden. Tag auflegen und liegen lassen.";
+      els.nfcHint.textContent = "USB-NFC Auto-Erkennung aktiv. Tag einfach auflegen.";
     }
   } finally {
     pcscPollBusy = false;
