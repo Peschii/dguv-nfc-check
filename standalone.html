@@ -1215,7 +1215,7 @@ function showDevice(device) {
         ? "Bald prüfen"
         : "Dringend Prüfung veranlassen";
   const lines = status === "valid"
-    ? [`Tag: ${device.tagId}`, `Nächste Prüfung: ${formatDate(device.nextCheck)}`]
+    ? [`Tag: ${device.tagId}`, `Fällig am: ${formatDate(device.nextCheck)}`, `Noch ${daysUntilDue} ${daysUntilDue === 1 ? "Tag" : "Tage"} bis fällig`]
     : status === "soon"
       ? [`Tag: ${device.tagId}`, `Fällig am: ${formatDate(device.nextCheck)}`, `Noch ${daysUntilDue} ${daysUntilDue === 1 ? "Tag" : "Tage"} bis fällig`]
       : [`Tag: ${device.tagId}`, `Fällig seit: ${formatDate(device.nextCheck)}`, `${overdueDays} ${overdueDays === 1 ? "Tag" : "Tage"} drüber`];
