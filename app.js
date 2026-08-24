@@ -1,8 +1,9 @@
-﻿const STORAGE_KEY = "dguv-nfc-devices-v1";
+const STORAGE_KEY = "dguv-nfc-devices-v1";
 const SHEET_URL_KEY = "dguv-nfc-sheet-url-v1";
 const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
 const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
 const WRITER_KEY = "dguv-nfc-writer-v1";
+const PUBLIC_APP_URL = "https://peschii.github.io/dguv-nfc-check/";
 
 const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
@@ -80,6 +81,7 @@ const els = {
 let serialPort = null;
 let serialReader = null;
 let serialWriter = null;
+let usbWriterMode = '';
 
 init();
 
@@ -95,9 +97,8 @@ function init() {
     els.writeTextButton.disabled = true;
   }
 
-  if (!("serial" in navigator)) {
-    els.connectUsbButton.disabled = true;
-    els.connectUsbButton.textContent = "USB-NFC nicht unterstützt";
+  if (!('serial' in navigator)) {
+    els.writerHint.textContent = 'Am PC zuerst lokalen USB-Writer versuchen. WebSerial ist hier nicht verfügbar.';
   }
 
   const idFromUrl = new URLSearchParams(location.search).get("id");
@@ -252,7 +253,7 @@ async function writePreparedTag(event) {
   const device = savePreparedDevice(false);
   if (!device) return;
 
-  if (serialPort) {
+  if (usbWriterMode === 'pcsc' || serialPort) {
     await writePreparedTagUsb(device);
     return;
   }
@@ -276,8 +277,13 @@ async function writePreparedTag(event) {
 }
 
 async function connectUsbNfc() {
+  usbWriterMode = "";
+
+  const localPcsc = await tryConnectLocalPcsc();
+  if (localPcsc) return;
+
   if (!("serial" in navigator)) {
-    els.writerHint.textContent = "USB-NFC geht in Chrome/Edge am PC über Web Serial.";
+    els.writerHint.textContent = "Kein lokaler PC/SC-Writer erreichbar. WebSerial geht nur in Chrome/Edge am PC.";
     return;
   }
 
@@ -288,24 +294,59 @@ async function connectUsbNfc() {
     serialWriter = serialPort.writable.getWriter();
     await pn532Wakeup();
     await pn532Command([0x14, 0x01, 0x14, 0x01]);
+    usbWriterMode = "pn532";
     els.connectUsbButton.textContent = "USB-NFC verbunden";
     els.writerHint.textContent = "PN532 verbunden. Tag auflegen und schreiben.";
   } catch (error) {
     serialPort = null;
+    usbWriterMode = "";
     els.writerHint.textContent = error.message || "USB-NFC konnte nicht verbunden werden.";
+  }
+}
+
+async function tryConnectLocalPcsc() {
+  try {
+    const response = await fetch("/api/nfc/list?ts=" + Date.now(), { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Kein lokaler NFC-Writer erreichbar.");
+    usbWriterMode = "pcsc";
+    serialPort = null;
+    const reader = Array.isArray(data.readers) && data.readers.length ? data.readers[0] : "PC/SC Reader";
+    els.connectUsbButton.textContent = "USB-NFC lokal verbunden";
+    els.writerHint.textContent = `Lokaler NFC-Writer bereit: ${reader}. Tag auflegen und schreiben.`;
+    return true;
+  } catch {
+    return false;
   }
 }
 
 async function writePreparedTagUsb(device) {
   try {
     els.writerHint.textContent = "Tag auflegen...";
+    const payload = buildDeviceUrl(device.tagId);
+
+    if (usbWriterMode === "pcsc") {
+      const response = await fetch("/api/nfc/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: payload }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "Lokales NFC-Schreiben fehlgeschlagen.");
+      state.writerCount += 1;
+      els.writerCounter.textContent = `${state.writerCount} geschrieben`;
+      els.writerHint.textContent = `USB-NFC geschrieben: ${device.tagId} · ${data.reader || "Reader"} · ${data.uid || "UID"}`;
+      nextPreparedDevice();
+      return;
+    }
+
     const target = await pn532FindTarget();
     if (!target) {
       els.writerHint.textContent = "Kein NFC-Tag gefunden.";
       return;
     }
 
-    await writeNtagUrl(target, buildDeviceUrl(device.tagId));
+    await writeNtagUrl(target, payload);
     state.writerCount += 1;
     els.writerCounter.textContent = `${state.writerCount} geschrieben`;
     els.writerHint.textContent = `USB-NFC geschrieben: ${device.tagId}`;
@@ -449,7 +490,10 @@ function setDetails(device = {}) {
 }
 
 function buildDeviceUrl(tagId) {
-  return `${location.origin}${location.pathname}?id=${encodeURIComponent(normalizeTag(tagId))}`;
+  const tag = encodeURIComponent(normalizeTag(tagId));
+  const isLocal = ["127.0.0.1", "localhost"].includes(location.hostname);
+  const base = isLocal ? PUBLIC_APP_URL : `${location.origin}${location.pathname}`;
+  return `${base.replace(/[?#].*$/, "").replace(/\/$/, "")}/?id=${tag}`;
 }
 
 function getCheckStatus(dateValue) {
@@ -1079,6 +1123,12 @@ function escapeHtml(value) {
 }
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+    .catch(() => {});
 }
+
+
+
+
 
