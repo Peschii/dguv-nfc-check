@@ -747,6 +747,7 @@ let serialWriter = null;
 let usbWriterMode = '';
 let pcscPollTimer = null;
 let lastPcscUid = '';
+let lastPcscData = '';
 let pcscPollBusy = false;
 
 init();
@@ -990,6 +991,7 @@ async function tryConnectLocalPcsc() {
 function startLocalPcscPolling() {
   if (pcscPollTimer) clearInterval(pcscPollTimer);
   lastPcscUid = "";
+  lastPcscData = "";
   els.writerCounter.textContent = "Warte auf Tag";
   pcscPollTimer = setInterval(checkLocalPcscTag, 900);
   checkLocalPcscTag();
@@ -1003,19 +1005,37 @@ async function checkLocalPcscTag() {
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || "Kein Tag erkannt.");
     const uid = data.uid || "ohne UID";
-    const known = data.data ? ` · Inhalt: ${data.data}` : " · leer oder nicht lesbar";
+    const raw = String(data.data || "").trim();
+    const tag = normalizeTag(raw);
+    const known = raw ? ` · Inhalt: ${raw}` : " · leer oder nicht lesbar";
+    const changed = uid !== lastPcscUid || raw !== lastPcscData;
     lastPcscUid = uid;
+    lastPcscData = raw;
     els.writerCounter.textContent = "Tag erkannt";
-    els.writerHint.textContent = `Tag erkannt: ${uid}${known}. Jetzt schreiben drücken.`;
+    els.writerHint.textContent = tag
+      ? `Tag erkannt: ${tag} · ${uid}. Daten wurden automatisch geladen.`
+      : `Tag erkannt: ${uid}${known}. Neuer/leer Tag kann beschrieben werden.`;
+    if (tag && changed) applyDetectedLocalTag(tag);
   } catch {
     if (lastPcscUid) {
       lastPcscUid = "";
+      lastPcscData = "";
       els.writerCounter.textContent = "Warte auf Tag";
       els.writerHint.textContent = "Reader verbunden. Tag auflegen und liegen lassen.";
     }
   } finally {
     pcscPollBusy = false;
   }
+}
+function applyDetectedLocalTag(tag) {
+  els.tagInput.value = tag;
+  state.currentTag = tag;
+  if (!els.writerPart.value.trim()) {
+    els.writerTag.value = tag;
+    saveWriterDefaults();
+    renderWriterPreview();
+  }
+  findAndShow(tag, "USB-NFC", false);
 }
 async function writePreparedTagUsb(device) {
   const wasPolling = pcscPollTimer;
@@ -1831,6 +1851,7 @@ if ("serviceWorker" in navigator) {
     .then((registrations) => registrations.forEach((registration) => registration.unregister()))
     .catch(() => {});
 }
+
 
 
 
