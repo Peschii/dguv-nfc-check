@@ -474,9 +474,9 @@ function normalizeTag(input) {
   const raw = String(input || "").trim();
   if (!raw) return "";
   const urlId = raw.match(/[?&]id=([^&]+)/i);
-  if (urlId) return decodeURIComponent(urlId[1]).trim().toUpperCase();
+  if (urlId) return decodeURIComponent(urlId[1]).split(/[&?]/)[0].trim().toUpperCase();
   const pipe = raw.includes("|") ? raw.split("|").pop() : raw;
-  return pipe.trim().toUpperCase();
+  return pipe.split(/[&?]/)[0].trim().toUpperCase();
 }
 
 function normalizeKnownTagPrefix(tag) {
@@ -520,7 +520,7 @@ function findAndShow(input, source = "Manuell", shouldLog = true) {
     device = deviceFromTagPayload(input);
   }
   if (!device) {
-    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Keine Prüfdaten für ${tag}` : "Keine Tag-ID eingegeben.");
+    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Prüfdatum fehlt für ${tag}. Tag muss date=YYYY-MM-DD enthalten.` : "Keine Tag-ID eingegeben.");
     setDetails({ tagId: tag });
     if (tag && shouldLog) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
     return;
@@ -593,14 +593,16 @@ function addYears(dateValue, years) {
 function deviceFromTagPayload(input) {
   const tagId = normalizeTag(input);
   if (!tagId) return null;
+  const raw = safeDecode(String(input || ""));
   let params;
   try {
-    const url = String(input || "").includes("?") ? new URL(String(input), location.href) : null;
+    const url = raw.includes("?") ? new URL(raw, location.href) : null;
     params = url ? url.searchParams : new URLSearchParams(String(input || "").replace(/^\?/, ""));
   } catch {
-    params = new URLSearchParams(String(input || "").replace(/^\?/, ""));
+    params = new URLSearchParams(raw.replace(/^\?/, ""));
   }
-  const testDate = normalizeDate(params.get("date") || params.get("pruefdatum") || params.get("checked") || "");
+  const dateMatch = raw.match(/(?:[?&]|%26)(?:date|pruefdatum|checked)(?:=|%3D)(\d{4}-\d{2}-\d{2})/i);
+  const testDate = normalizeDate(params.get("date") || params.get("pruefdatum") || params.get("checked") || (dateMatch ? dateMatch[1] : ""));
   if (!testDate) return null;
   return {
     tagId,
@@ -611,6 +613,14 @@ function deviceFromTagPayload(input) {
     place: "",
     inspector: "",
   };
+}
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function getCheckStatus(dateValue) {
