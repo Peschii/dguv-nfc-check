@@ -1724,13 +1724,14 @@ function logWalkCheck(entry) {
     place: entry.place || "",
   };
 
-  state.walkLog = [row, ...state.walkLog.filter((item) => normalizeTag(item.tagId) !== row.tagId)].slice(0, 500);
+  state.walkLog = dedupeWalkRows([row, ...state.walkLog]).slice(0, 500);
   persistWalkLog();
   renderWalkLog();
   if (!els.reportPage.classList.contains("view-hidden")) useCurrentWalkLogForReport();
 }
 
 function renderWalkLog() {
+  state.walkLog = dedupeWalkRows(state.walkLog);
   els.walkLogCount.textContent = `${state.walkLog.length} Prüfungen`;
   els.walkLogList.innerHTML = "";
 
@@ -1753,6 +1754,7 @@ function renderWalkLog() {
 }
 
 function buildWalkLogCsv() {
+  state.walkLog = dedupeWalkRows(state.walkLog);
   const stats = getWalkLogStats();
   const rows = [
     ["DGUV Laborrundgang"],
@@ -1783,7 +1785,7 @@ function buildWalkLogCsv() {
 }
 
 function getWalkLogStats() {
-  return state.walkLog.reduce(
+  return dedupeWalkRows(state.walkLog).reduce(
     (stats, row) => {
       const status = row.status || "Unbekannt";
       if (status === "Geprüft und iO") stats.valid += 1;
@@ -1859,11 +1861,12 @@ function clearWalkLog() {
 }
 
 function analyzeReportInput() {
-  reportRows = parseReportText(els.reportInput.value);
+  reportRows = dedupeWalkRows(parseReportText(els.reportInput.value));
   renderReport();
 }
 
 function useCurrentWalkLogForReport() {
+  state.walkLog = dedupeWalkRows(state.walkLog);
   reportRows = [...state.walkLog];
   renderReport();
 }
@@ -1919,7 +1922,20 @@ function parseCsvLine(line) {
   return cells;
 }
 
+function dedupeWalkRows(rows) {
+  const seen = new Set();
+  const cleaned = [];
+  for (const row of rows || []) {
+    const key = normalizeKnownTagPrefix(normalizeTag(row.tagId));
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push({ ...row, tagId: key });
+  }
+  return cleaned;
+}
+
 function renderReport() {
+  reportRows = dedupeWalkRows(reportRows);
   const stats = getRowsStats(reportRows);
   els.reportOk.textContent = stats.valid;
   els.reportSoon.textContent = stats.soon;
@@ -1946,7 +1962,7 @@ function renderReport() {
 }
 
 function getRowsStats(rows) {
-  return rows.reduce(
+  return dedupeWalkRows(rows).reduce(
     (stats, row) => {
       if (row.status === "Geprüft und iO") stats.valid += 1;
       else if (row.status === "Bald prüfen") stats.soon += 1;
@@ -2188,7 +2204,7 @@ function loadWalkLog() {
   try {
     const raw = localStorage.getItem(WALK_LOG_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? dedupeWalkRows(parsed) : [];
   } catch {
     return [];
   }
