@@ -385,6 +385,7 @@ async function checkLocalPcscTag() {
     const uid = data.uid || "ohne UID";
     const raw = String(data.data || "").trim();
     const tag = normalizeTag(raw);
+    const payload = raw.includes("?") ? raw : tag;
     const known = raw ? ` · Inhalt: ${raw}` : " · leer oder nicht lesbar";
     const changed = uid !== lastPcscUid || raw !== lastPcscData;
     lastPcscUid = uid;
@@ -395,7 +396,7 @@ async function checkLocalPcscTag() {
       : `Tag erkannt: ${uid}${known}. Neuer/leer Tag kann beschrieben werden.`;
     els.writerHint.textContent = message;
     els.nfcHint.textContent = message;
-    if (tag && changed) applyDetectedLocalTag(tag);
+    if (tag && changed) applyDetectedLocalTag(payload);
   } catch {
     if (lastPcscUid) {
       lastPcscUid = "";
@@ -409,10 +410,11 @@ async function checkLocalPcscTag() {
   }
 }
 function applyDetectedLocalTag(tag) {
-  els.tagInput.value = tag;
-  state.currentTag = tag;
+  const tagId = normalizeTag(tag);
+  els.tagInput.value = tagId;
+  state.currentTag = tagId;
   if (!els.writerPart.value.trim()) {
-    els.writerTag.value = tag;
+    els.writerTag.value = tagId;
     saveWriterDefaults();
     renderWriterPreview();
   }
