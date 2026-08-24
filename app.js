@@ -929,9 +929,10 @@ function logWalkCheck(entry) {
     place: entry.place || "",
   };
 
-  state.walkLog = [row, ...state.walkLog].slice(0, 500);
+  state.walkLog = [row, ...state.walkLog.filter((item) => normalizeTag(item.tagId) !== row.tagId)].slice(0, 500);
   persistWalkLog();
   renderWalkLog();
+  if (!els.reportPage.classList.contains("view-hidden")) useCurrentWalkLogForReport();
 }
 
 function renderWalkLog() {

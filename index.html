@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=27" />
+    <link rel="stylesheet" href="styles.css?v=28" />
   </head>
   <body>
     <main class="app-shell">
@@ -21,13 +21,9 @@
           <h2>Rundgang auswerten</h2>
           <span id="reportCount">0 Einträge</span>
         </div>
-        <label>
-          Mailinhalt einfügen (optional)
-          <textarea id="reportInput" placeholder="Mailinhalt aus dem DGUV Tool hier einfügen..."></textarea>
-        </label>
         <div class="data-actions">
           <button id="reportUseCurrentButton" type="button">Aktuellen Rundgang übernehmen</button>
-          <button id="reportAnalyzeButton" type="button">Auswerten</button>
+          <button id="reportAnalyzeButton" type="button">Mailtext auswerten</button>
           <button id="reportResetButton" type="button">Neuer Rundgang</button>
           <button id="reportMailButton" type="button">Bericht per E-Mail</button>
           <button id="reportHtmlButton" type="button">Bericht für Teams herunterladen</button>
@@ -58,6 +54,10 @@
             <tbody id="reportRows"></tbody>
           </table>
         </div>
+        <label class="report-paste-field">
+          Mailinhalt einfügen (optional)
+          <textarea id="reportInput" placeholder="Mailinhalt aus dem DGUV Tool hier einfügen..."></textarea>
+        </label>
       </section>
 
       <section class="writer-page view-hidden" id="writerPage" aria-label="Tags beschreiben">
@@ -231,7 +231,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=28"></script>
   </body>
 </html>
 

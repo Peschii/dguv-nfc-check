@@ -243,6 +243,10 @@ textarea {
   margin-top: 14px;
 }
 
+.report-paste-field {
+  margin-top: 18px;
+}
+
 .report-table {
   width: 100%;
   border-collapse: collapse;

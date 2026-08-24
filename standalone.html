@@ -252,6 +252,10 @@ textarea {
   margin-top: 14px;
 }
 
+.report-paste-field {
+  margin-top: 18px;
+}
+
 .report-table {
   width: 100%;
   border-collapse: collapse;
@@ -578,13 +582,9 @@ form {
           <h2>Rundgang auswerten</h2>
           <span id="reportCount">0 Einträge</span>
         </div>
-        <label>
-          Mailinhalt einfügen (optional)
-          <textarea id="reportInput" placeholder="Mailinhalt aus dem DGUV Tool hier einfügen..."></textarea>
-        </label>
         <div class="data-actions">
           <button id="reportUseCurrentButton" type="button">Aktuellen Rundgang übernehmen</button>
-          <button id="reportAnalyzeButton" type="button">Auswerten</button>
+          <button id="reportAnalyzeButton" type="button">Mailtext auswerten</button>
           <button id="reportResetButton" type="button">Neuer Rundgang</button>
           <button id="reportMailButton" type="button">Bericht per E-Mail</button>
           <button id="reportHtmlButton" type="button">Bericht für Teams herunterladen</button>
@@ -615,6 +615,10 @@ form {
             <tbody id="reportRows"></tbody>
           </table>
         </div>
+        <label class="report-paste-field">
+          Mailinhalt einfügen (optional)
+          <textarea id="reportInput" placeholder="Mailinhalt aus dem DGUV Tool hier einfügen..."></textarea>
+        </label>
       </section>
 
       <section class="writer-page view-hidden" id="writerPage" aria-label="Tags beschreiben">
@@ -1720,9 +1724,10 @@ function logWalkCheck(entry) {
     place: entry.place || "",
   };
 
-  state.walkLog = [row, ...state.walkLog].slice(0, 500);
+  state.walkLog = [row, ...state.walkLog.filter((item) => normalizeTag(item.tagId) !== row.tagId)].slice(0, 500);
   persistWalkLog();
   renderWalkLog();
+  if (!els.reportPage.classList.contains("view-hidden")) useCurrentWalkLogForReport();
 }
 
 function renderWalkLog() {
