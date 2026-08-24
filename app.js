@@ -4,6 +4,7 @@ const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
 const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
 const WRITER_KEY = "dguv-nfc-writer-v1";
 const PUBLIC_APP_URL = "https://peschii.github.io/dguv-nfc-check/";
+const CHECK_VALID_YEARS = 2;
 
 const DEFAULT_DEVICES = [
   { tagId: "EL-001", part: "Test Netzteil", nextCheck: "2026-12-31", lab: "Labor 1", place: "Tisch 1" },
@@ -212,7 +213,7 @@ async function copyCurrentUrl() {
     showUnknown("Keine ID", "Tag-ID fehlt", "Erst Gerät anzeigen oder ID eingeben.");
     return;
   }
-  const url = buildDeviceUrl(tag);
+  const url = buildDeviceUrl(tag, getCurrentDevice(tag));
   try {
     await navigator.clipboard.writeText(url);
     els.nfcHint.textContent = `Tag-URL kopiert: ${url}`;
@@ -236,7 +237,7 @@ async function writeNfc(mode) {
 
   const payload =
     mode === "url"
-      ? buildDeviceUrl(tag)
+      ? buildDeviceUrl(tag, getCurrentDevice(tag))
       : `ELEKTRO|${tag}`;
 
   try {
@@ -271,7 +272,7 @@ async function writePreparedTag(event) {
 
   try {
     const writer = new NDEFReader();
-    const payload = buildDeviceUrl(device.tagId);
+    const payload = buildDeviceUrl(device.tagId, device);
     await writer.write({ records: [{ recordType: "url", data: payload }] });
     state.writerCount += 1;
     els.writerCounter.textContent = `${state.writerCount} geschrieben`;
@@ -394,7 +395,7 @@ async function writePreparedTagUsb(device) {
   }
   try {
     els.writerHint.textContent = "Tag auflegen...";
-    const payload = buildDeviceUrl(device.tagId);
+    const payload = buildDeviceUrl(device.tagId, device);
 
     if (usbWriterMode === "pcsc") {
       const response = await fetch("/api/nfc/write", {
@@ -483,6 +484,13 @@ function normalizeKnownTagPrefix(tag) {
   return match ? match[1] : tag;
 }
 
+function getCurrentDevice(tagId) {
+  const tag = normalizeTag(tagId);
+  return state.devices.find((item) => normalizeTag(item.tagId) === tag)
+    || DEFAULT_DEVICES.find((item) => normalizeTag(item.tagId) === tag)
+    || {};
+}
+
 function findAndShow(input, source = "Manuell", shouldLog = true) {
   let tag = normalizeTag(input);
   els.tagInput.value = tag;
@@ -509,7 +517,10 @@ function findAndShow(input, source = "Manuell", shouldLog = true) {
     }
   }
   if (!device) {
-    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Keine Daten für ${tag}` : "Keine Tag-ID eingegeben.");
+    device = deviceFromTagPayload(input);
+  }
+  if (!device) {
+    showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Keine Prüfdaten für ${tag}` : "Keine Tag-ID eingegeben.");
     setDetails({ tagId: tag });
     if (tag && shouldLog) logWalkCheck({ tagId: tag, status: "Unbekannt", source });
     return;
@@ -559,14 +570,47 @@ function setDetails(device = {}) {
   els.labValue.textContent = device.lab || "-";
   els.placeValue.textContent = device.place || "-";
   els.tagValue.textContent = device.tagId || "-";
-  els.urlValue.textContent = device.tagId ? buildDeviceUrl(device.tagId) : "-";
+  els.urlValue.textContent = device.tagId ? buildDeviceUrl(device.tagId, device) : "-";
 }
 
-function buildDeviceUrl(tagId) {
-  const tag = encodeURIComponent(normalizeTag(tagId));
+function buildDeviceUrl(tagId, device = {}) {
   const isLocal = ["127.0.0.1", "localhost"].includes(location.hostname);
   const base = isLocal ? PUBLIC_APP_URL : `${location.origin}${location.pathname}`;
-  return `${base.replace(/[?#].*$/, "").replace(/\/$/, "")}/?id=${tag}`;
+  const params = new URLSearchParams({ id: normalizeTag(tagId) });
+  const testDate = normalizeDate(device.testDate || device.pruefdatum || device.checked || "")
+    || addYears(normalizeDate(device.nextCheck || ""), -CHECK_VALID_YEARS);
+  if (testDate) params.set("date", testDate);
+  return `${base.replace(/[?#].*$/, "").replace(/\/$/, "")}/?${params.toString().replace(/\+/g, "%20")}`;
+}
+
+function addYears(dateValue, years) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setFullYear(date.getFullYear() + years);
+  return date.toISOString().slice(0, 10);
+}
+
+function deviceFromTagPayload(input) {
+  const tagId = normalizeTag(input);
+  if (!tagId) return null;
+  let params;
+  try {
+    const url = String(input || "").includes("?") ? new URL(String(input), location.href) : null;
+    params = url ? url.searchParams : new URLSearchParams(String(input || "").replace(/^\?/, ""));
+  } catch {
+    params = new URLSearchParams(String(input || "").replace(/^\?/, ""));
+  }
+  const testDate = normalizeDate(params.get("date") || params.get("pruefdatum") || params.get("checked") || "");
+  if (!testDate) return null;
+  return {
+    tagId,
+    part: tagId,
+    testDate,
+    nextCheck: addYears(testDate, CHECK_VALID_YEARS),
+    lab: "",
+    place: "",
+    inspector: "",
+  };
 }
 
 function getCheckStatus(dateValue) {
@@ -602,6 +646,7 @@ function getStatusLabel(status) {
 function formatDate(dateValue) {
   if (!dateValue) return "-";
   const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("de-DE");
 }
 
@@ -644,16 +689,18 @@ function savePreparedDevice(showFeedback) {
 }
 
 function buildPreparedDevice() {
+  const testDate = els.writerDate.value;
   const device = {
     tagId: normalizeTag(els.writerTag.value),
     part: els.writerPart.value.trim(),
-    nextCheck: els.writerDate.value,
+    testDate,
+    nextCheck: addYears(testDate, CHECK_VALID_YEARS),
     lab: els.writerLab.value.trim(),
     place: els.writerPlace.value.trim(),
     inspector: els.writerInspector.value.trim(),
   };
 
-  if (!device.tagId || !device.part || !device.nextCheck || !device.lab || !device.place) {
+  if (!device.tagId || !device.part || !device.testDate || !device.lab || !device.place) {
     els.writerHint.textContent = "Tag-ID, Bauteil, Prüfdatum, Labor und Ort müssen gefüllt sein.";
     return null;
   }
@@ -779,9 +826,10 @@ function renderWarnings() {
 
 function renderWriterPreview() {
   const tag = normalizeTag(els.writerTag.value);
-  const url = tag ? buildDeviceUrl(tag) : "-";
+  const url = tag ? buildDeviceUrl(tag, { testDate: els.writerDate.value }) : "-";
+  const nextCheck = addYears(els.writerDate.value, CHECK_VALID_YEARS);
   els.writerPreview.textContent = tag
-    ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · ${formatDate(els.writerDate.value)} · ${els.writerLab.value || "-"} · ${els.writerPlace.value || "-"} · ${url}`
+    ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · geprüft: ${formatDate(els.writerDate.value)} · fällig: ${formatDate(nextCheck)} · ${url}`
     : "-";
 }
 
@@ -1148,7 +1196,7 @@ function loadWriterDefaults() {
   try {
     const defaults = JSON.parse(localStorage.getItem(WRITER_KEY) || "{}");
     els.writerInspector.value = defaults.inspector || localStorage.getItem(INSPECTOR_KEY) || "Peschel";
-    els.writerDate.value = defaults.nextCheck || "";
+    els.writerDate.value = defaults.testDate || defaults.nextCheck || "";
     els.writerLab.value = defaults.lab || "";
     els.writerPlace.value = defaults.place || "";
     els.writerTag.value = defaults.tagId || "";
@@ -1163,7 +1211,7 @@ function saveWriterDefaults() {
     WRITER_KEY,
     JSON.stringify({
       inspector: els.writerInspector.value.trim(),
-      nextCheck: els.writerDate.value,
+      testDate: els.writerDate.value,
       lab: els.writerLab.value.trim(),
       place: els.writerPlace.value.trim(),
       tagId: normalizeTag(els.writerTag.value),
