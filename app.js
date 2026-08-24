@@ -341,17 +341,17 @@ async function checkLocalPcscTag() {
     if (!response.ok || !data.ok) throw new Error(data.error || "Kein Tag erkannt.");
     const uid = data.uid || "ohne UID";
     const known = data.data ? ` · Inhalt: ${data.data}` : " · leer oder nicht lesbar";
-    if (uid !== lastPcscUid) {
-      lastPcscUid = uid;
-      els.writerCounter.textContent = "Tag erkannt";
-      els.writerHint.textContent = `Tag erkannt: ${uid}${known}. Jetzt schreiben drücken.`;
-    }
+    lastPcscUid = uid;
+    els.writerCounter.textContent = "Tag erkannt";
+    els.writerHint.textContent = `Tag erkannt: ${uid}${known}. Jetzt schreiben drücken.`;
   } catch {
     if (lastPcscUid) {
       lastPcscUid = "";
       els.writerCounter.textContent = "Warte auf Tag";
       els.writerHint.textContent = "Reader verbunden. Tag auflegen und liegen lassen.";
     }
+  } finally {
+    pcscPollBusy = false;
   }
 }
 async function writePreparedTagUsb(device) {
@@ -1168,6 +1168,7 @@ if ("serviceWorker" in navigator) {
     .then((registrations) => registrations.forEach((registration) => registration.unregister()))
     .catch(() => {});
 }
+
 
 
 
