@@ -107,6 +107,9 @@ h1 {
 
 .status-panel p {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 22px;
   font-weight: 700;
   max-width: 100%;

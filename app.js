@@ -542,12 +542,12 @@ function showDevice(device) {
       : status === "soon"
         ? "Bald prüfen"
         : "Dringend Prüfung veranlassen";
-  els.statusSubline.textContent =
-    status === "valid"
-      ? `Tag: ${device.tagId} · Nächste Prüfung: ${formatDate(device.nextCheck)}`
-      : status === "soon"
-        ? `Tag: ${device.tagId} · Innerhalb 1 Monat: ${formatDate(device.nextCheck)}`
-        : `Tag: ${device.tagId} · Fällig seit: ${formatDate(device.nextCheck)} · ${overdueDays} ${overdueDays === 1 ? "Tag" : "Tage"} drüber`;
+  const lines = status === "valid"
+    ? [`Tag: ${device.tagId}`, `Nächste Prüfung: ${formatDate(device.nextCheck)}`]
+    : status === "soon"
+      ? [`Tag: ${device.tagId}`, `Innerhalb 1 Monat`, `Fällig am: ${formatDate(device.nextCheck)}`]
+      : [`Tag: ${device.tagId}`, `Fällig seit: ${formatDate(device.nextCheck)}`, `${overdueDays} ${overdueDays === 1 ? "Tag" : "Tage"} drüber`];
+  els.statusSubline.innerHTML = lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("");
   setDetails(device);
 }
 
