@@ -82,6 +82,9 @@ let serialPort = null;
 let serialReader = null;
 let serialWriter = null;
 let usbWriterMode = '';
+let pcscPollTimer = null;
+let lastPcscUid = '';
+let pcscPollBusy = false;
 
 init();
 
@@ -314,13 +317,49 @@ async function tryConnectLocalPcsc() {
     const reader = Array.isArray(data.readers) && data.readers.length ? data.readers[0] : "PC/SC Reader";
     els.connectUsbButton.textContent = "USB-NFC lokal verbunden";
     els.writerHint.textContent = `Lokaler NFC-Writer bereit: ${reader}. Tag auflegen und schreiben.`;
+    startLocalPcscPolling();
     return true;
   } catch {
     return false;
   }
 }
 
+function startLocalPcscPolling() {
+  if (pcscPollTimer) clearInterval(pcscPollTimer);
+  lastPcscUid = "";
+  els.writerCounter.textContent = "Warte auf Tag";
+  pcscPollTimer = setInterval(checkLocalPcscTag, 900);
+  checkLocalPcscTag();
+}
+
+async function checkLocalPcscTag() {
+  if (usbWriterMode !== "pcsc" || pcscPollBusy) return;
+  pcscPollBusy = true;
+  try {
+    const response = await fetch("/api/nfc/read?ts=" + Date.now(), { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Kein Tag erkannt.");
+    const uid = data.uid || "ohne UID";
+    const known = data.data ? ` · Inhalt: ${data.data}` : " · leer oder nicht lesbar";
+    if (uid !== lastPcscUid) {
+      lastPcscUid = uid;
+      els.writerCounter.textContent = "Tag erkannt";
+      els.writerHint.textContent = `Tag erkannt: ${uid}${known}. Jetzt schreiben drücken.`;
+    }
+  } catch {
+    if (lastPcscUid) {
+      lastPcscUid = "";
+      els.writerCounter.textContent = "Warte auf Tag";
+      els.writerHint.textContent = "Reader verbunden. Tag auflegen und liegen lassen.";
+    }
+  }
+}
 async function writePreparedTagUsb(device) {
+  const wasPolling = pcscPollTimer;
+  if (pcscPollTimer) {
+    clearInterval(pcscPollTimer);
+    pcscPollTimer = null;
+  }
   try {
     els.writerHint.textContent = "Tag auflegen...";
     const payload = buildDeviceUrl(device.tagId);
@@ -353,6 +392,8 @@ async function writePreparedTagUsb(device) {
     nextPreparedDevice();
   } catch (error) {
     els.writerHint.textContent = error.message || "USB-Schreiben fehlgeschlagen.";
+  } finally {
+    if (usbWriterMode === "pcsc" && wasPolling) startLocalPcscPolling();
   }
 }
 
@@ -1127,6 +1168,8 @@ if ("serviceWorker" in navigator) {
     .then((registrations) => registrations.forEach((registration) => registration.unregister()))
     .catch(() => {});
 }
+
+
 
 
 

@@ -10,6 +10,7 @@ using System;
 using System.Text;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Threading;
 
 public static class PcscNfc {
   [StructLayout(LayoutKind.Sequential)]
@@ -42,7 +43,7 @@ public static class PcscNfc {
   const UInt32 SCARD_SCOPE_USER = 0;
   const UInt32 SCARD_SHARE_SHARED = 2;
   const UInt32 SCARD_PROTOCOL_T0 = 1;
-  const UInt32 SCARD_PROTOCOL_T1 = 2;
+  const UInt32 SCARD_PROTOCOL_T1 = 2;`r`n  const UInt32 SCARD_PROTOCOL_RAW = 4;
   const UInt32 SCARD_LEAVE_CARD = 0;
 
   static void Check(int code, string step) {
@@ -79,6 +80,18 @@ public static class PcscNfc {
     return data;
   }
 
+
+  static IntPtr ConnectWithWait(IntPtr ctx, string reader, out UInt32 proto, string step) {
+    IntPtr card;
+    int last = 0;
+    for (int attempt = 0; attempt < 50; attempt++) {
+      last = SCardConnect(ctx, reader, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1 | SCARD_PROTOCOL_RAW, out card, out proto);
+      if (last == 0) return card;
+      Thread.Sleep(200);
+    }
+    proto = 0;
+    throw new Exception(step + " failed: 0x" + last.ToString("X8") + " - Tag wurde nicht stabil erkannt. Tag mittig auflegen und liegen lassen.");
+  }
   static string Hex(byte[] bytes) {
     return BitConverter.ToString(bytes).Replace("-", "");
   }
@@ -141,7 +154,7 @@ public static class PcscNfc {
       var readers = ListReaders();
       if (readers.Length == 0) throw new Exception("Kein PC/SC NFC Reader gefunden.");
       UInt32 proto;
-      Check(SCardConnect(ctx, readers[0], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, out card, out proto), "SCardConnect - liegt ein NFC Tag auf dem Reader?");
+      card = ConnectWithWait(ctx, readers[0], out proto, "SCardConnect - liegt ein NFC Tag auf dem Reader?");
       byte[] uid = Tx(card, proto, new byte[] {0xFF,0xCA,0x00,0x00,0x00});
       var all = new List<byte>();
       for (byte page = 4; page < 40; page++) {
@@ -178,7 +191,7 @@ public static class PcscNfc {
       var readers = ListReaders();
       if (readers.Length == 0) throw new Exception("Kein PC/SC NFC Reader gefunden.");
       UInt32 proto;
-      Check(SCardConnect(ctx, readers[0], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, out card, out proto), "SCardConnect - Tag auflegen");
+      card = ConnectWithWait(ctx, readers[0], out proto, "SCardConnect - Tag auflegen");
       byte[] uid = Tx(card, proto, new byte[] {0xFF,0xCA,0x00,0x00,0x00});
       for (byte page = 4; page < 40; page++) Tx(card, proto, new byte[] {0xFF,0xD6,0x00,page,0x04,0x00,0x00,0x00,0x00});
       for (int offset = 0; offset < writeBytes.Length; offset += 4) {
@@ -208,3 +221,5 @@ try {
   [pscustomobject]@{ ok = $false; error = $_.Exception.Message } | ConvertTo-Json -Depth 5 -Compress
   exit 1
 }
+
+
