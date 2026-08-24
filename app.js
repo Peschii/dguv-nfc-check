@@ -496,7 +496,10 @@ function findAndShow(input, source = "Manuell", shouldLog = true) {
   let tag = normalizeTag(input);
   els.tagInput.value = tag;
   state.currentTag = tag;
-  let device = state.devices.find((item) => normalizeTag(item.tagId) === tag);
+  let device = deviceFromTagPayload(input);
+  if (!device) {
+    device = state.devices.find((item) => normalizeTag(item.tagId) === tag);
+  }
   if (!device) {
     const baseTag = normalizeKnownTagPrefix(tag);
     if (baseTag !== tag) {
@@ -516,9 +519,6 @@ function findAndShow(input, source = "Manuell", shouldLog = true) {
       persist();
       renderList();
     }
-  }
-  if (!device) {
-    device = deviceFromTagPayload(input);
   }
   if (!device) {
     showUnknown("Nicht gefunden", "UNBEKANNT", tag ? `Fälligkeitsdatum fehlt für ${tag}. Tag muss date=YYYY-MM-DD enthalten.` : "Keine Tag-ID eingegeben.");
