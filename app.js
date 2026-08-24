@@ -534,7 +534,7 @@ function showDevice(device) {
   state.currentTag = normalizeTag(device.tagId);
   const status = getCheckStatus(device.nextCheck);
   els.statusPanel.className = `status-panel ${status}`;
-  els.statusKicker.textContent = device.tagId;
+  els.statusKicker.textContent = device.part || device.tagId;
   els.statusText.textContent =
     status === "valid"
       ? "Geprüft und iO"
@@ -543,10 +543,10 @@ function showDevice(device) {
         : "Dringend Prüfung veranlassen";
   els.statusSubline.textContent =
     status === "valid"
-      ? `Nächste Prüfung: ${formatDate(device.nextCheck)}`
+      ? `Tag: ${device.tagId} · Nächste Prüfung: ${formatDate(device.nextCheck)}`
       : status === "soon"
-        ? `Innerhalb 1 Monat: ${formatDate(device.nextCheck)}`
-        : `Fällig seit: ${formatDate(device.nextCheck)}`;
+        ? `Tag: ${device.tagId} · Innerhalb 1 Monat: ${formatDate(device.nextCheck)}`
+        : `Tag: ${device.tagId} · Fällig seit: ${formatDate(device.nextCheck)}`;
   setDetails(device);
 }
 
@@ -580,6 +580,7 @@ function buildDeviceUrl(tagId, device = {}) {
   const params = new URLSearchParams({ id: normalizeTag(tagId) });
   const dueDate = normalizeDate(device.nextCheck || device.dueDate || device.faellig || device.fallig || "");
   if (dueDate) params.set("date", dueDate);
+  if (device.part) params.set("name", device.part);
   return `${base.replace(/[?#].*$/, "").replace(/\/$/, "")}/?${params.toString().replace(/\+/g, "%20")}`;
 }
 
@@ -604,9 +605,10 @@ function deviceFromTagPayload(input) {
   const dateMatch = raw.match(/(?:[?&]|%26)(?:date|due|faellig|fallig|nextCheck)(?:=|%3D)(\d{4}-\d{2}-\d{2})/i);
   const dueDate = normalizeDate(params.get("date") || params.get("due") || params.get("faellig") || params.get("fallig") || params.get("nextCheck") || (dateMatch ? dateMatch[1] : ""));
   if (!dueDate) return null;
+  const name = (params.get("name") || params.get("geraet") || params.get("gerät") || params.get("part") || tagId).trim();
   return {
     tagId,
-    part: tagId,
+    part: name,
     nextCheck: dueDate,
     lab: "",
     place: "",
