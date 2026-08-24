@@ -65,7 +65,9 @@ const els = {
   emailLogButton: document.getElementById("emailLogButton"),
   clearLogButton: document.getElementById("clearLogButton"),
   reportInput: document.getElementById("reportInput"),
+  reportUseCurrentButton: document.getElementById("reportUseCurrentButton"),
   reportAnalyzeButton: document.getElementById("reportAnalyzeButton"),
+  reportResetButton: document.getElementById("reportResetButton"),
   reportMailButton: document.getElementById("reportMailButton"),
   reportHtmlButton: document.getElementById("reportHtmlButton"),
   reportCsvButton: document.getElementById("reportCsvButton"),
@@ -154,8 +156,10 @@ function init() {
   els.downloadLogButton.addEventListener("click", downloadWalkLog);
   els.emailLogButton.addEventListener("click", emailWalkLog);
   els.clearLogButton.addEventListener("click", clearWalkLog);
+  els.reportUseCurrentButton.addEventListener("click", useCurrentWalkLogForReport);
   els.reportAnalyzeButton.addEventListener("click", analyzeReportInput);
   els.reportInput.addEventListener("input", analyzeReportInput);
+  els.reportResetButton.addEventListener("click", resetWalkAndReport);
   els.reportMailButton.addEventListener("click", emailReport);
   els.reportHtmlButton.addEventListener("click", downloadReportHtml);
   els.reportCsvButton.addEventListener("click", downloadReportCsv);
@@ -191,7 +195,7 @@ function setMode(mode) {
   els.reportModeButton.classList.toggle("active", reporting);
   els.checkModeButton.classList.toggle("active", !writing && !reporting);
   if (writing) els.writerPart.focus();
-  if (reporting) els.reportInput.focus();
+  if (reporting) useCurrentWalkLogForReport();
 }
 
 function saveSheetUrl() {
@@ -1052,12 +1056,28 @@ function emailWalkLog() {
 
 function clearWalkLog() {
   state.walkLog = [];
+  reportRows = [];
   persistWalkLog();
   renderWalkLog();
+  renderReport();
 }
 
 function analyzeReportInput() {
   reportRows = parseReportText(els.reportInput.value);
+  renderReport();
+}
+
+function useCurrentWalkLogForReport() {
+  reportRows = [...state.walkLog];
+  renderReport();
+}
+
+function resetWalkAndReport() {
+  state.walkLog = [];
+  reportRows = [];
+  els.reportInput.value = "";
+  persistWalkLog();
+  renderWalkLog();
   renderReport();
 }
 
@@ -1144,7 +1164,8 @@ function getRowsStats(rows) {
 }
 
 function emailReport() {
-  analyzeReportInput();
+  if (els.reportInput.value.trim()) analyzeReportInput();
+  else if (!reportRows.length) useCurrentWalkLogForReport();
   if (!reportRows.length) {
     els.reportCount.textContent = "Kein Protokoll erkannt";
     return;
@@ -1167,13 +1188,15 @@ function emailReport() {
 }
 
 function downloadReportCsv() {
-  analyzeReportInput();
+  if (els.reportInput.value.trim()) analyzeReportInput();
+  else if (!reportRows.length) useCurrentWalkLogForReport();
   if (!reportRows.length) return;
   downloadBlob(`dguv-auswertung-${new Date().toISOString().slice(0, 10)}.csv`, `\uFEFF${buildRowsCsv(reportRows)}`, "text/csv;charset=utf-8");
 }
 
 function downloadReportHtml() {
-  analyzeReportInput();
+  if (els.reportInput.value.trim()) analyzeReportInput();
+  else if (!reportRows.length) useCurrentWalkLogForReport();
   if (!reportRows.length) return;
   const stats = getRowsStats(reportRows);
   const rowsHtml = reportRows.map((row) => `
