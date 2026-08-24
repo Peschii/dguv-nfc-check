@@ -508,15 +508,12 @@ form {
             </select>
           </label>
           <label>
-            Datum
-            <input id="writerDate" type="date" required />
+            Fälligkeitsdatum
+            <input id="writerDueDate" type="date" />
           </label>
           <label>
-            Datum bedeutet
-            <select id="writerDateMode">
-              <option value="due">Fälligkeitsdatum</option>
-              <option value="checked">Prüfdatum (+ 2 Jahre)</option>
-            </select>
+            Prüfdatum
+            <input id="writerCheckDate" type="date" />
           </label>
           <label>
             Labor
@@ -734,8 +731,8 @@ const els = {
   clearLogButton: document.getElementById("clearLogButton"),
   writerForm: document.getElementById("writerForm"),
   writerInspector: document.getElementById("writerInspector"),
-  writerDate: document.getElementById("writerDate"),
-  writerDateMode: document.getElementById("writerDateMode"),
+  writerDueDate: document.getElementById("writerDueDate"),
+  writerCheckDate: document.getElementById("writerCheckDate"),
   writerLab: document.getElementById("writerLab"),
   writerPlace: document.getElementById("writerPlace"),
   writerTag: document.getElementById("writerTag"),
@@ -812,7 +809,9 @@ function init() {
   els.writerForm.addEventListener("submit", writePreparedTag);
   els.savePreparedButton.addEventListener("click", () => savePreparedDevice(true));
   els.nextPreparedButton.addEventListener("click", nextPreparedDevice);
-  [els.writerInspector, els.writerDate, els.writerDateMode, els.writerLab, els.writerPlace, els.writerTag, els.writerPart].forEach((input) => {
+  els.writerDueDate.addEventListener("input", () => syncWriterDateChoice("due"));
+  els.writerCheckDate.addEventListener("input", () => syncWriterDateChoice("checked"));
+  [els.writerInspector, els.writerDueDate, els.writerCheckDate, els.writerLab, els.writerPlace, els.writerTag, els.writerPart].forEach((input) => {
     input.addEventListener("input", () => {
       saveWriterDefaults();
       renderWriterPreview();
@@ -1367,13 +1366,11 @@ function savePreparedDevice(showFeedback) {
 }
 
 function buildPreparedDevice() {
-  const enteredDate = els.writerDate.value;
-  const dateMode = els.writerDateMode.value;
-  const dueDate = dateMode === "checked" ? addYears(enteredDate, 2) : enteredDate;
+  const writerDates = getWriterDates();
   const device = {
     tagId: normalizeTag(els.writerTag.value),
     part: els.writerPart.value.trim(),
-    nextCheck: dueDate,
+    nextCheck: writerDates.dueDate,
     lab: els.writerLab.value.trim(),
     place: els.writerPlace.value.trim(),
     inspector: els.writerInspector.value.trim(),
@@ -1505,16 +1502,33 @@ function renderWarnings() {
 
 function renderWriterPreview() {
   const tag = normalizeTag(els.writerTag.value);
-  const enteredDate = els.writerDate.value;
-  const dateMode = els.writerDateMode.value;
-  const dueDate = dateMode === "checked" ? addYears(enteredDate, 2) : enteredDate;
-  const url = tag ? buildDeviceUrl(tag, { nextCheck: dueDate }) : "-";
-  const dateLabel = dateMode === "checked"
-    ? `geprüft: ${formatDate(enteredDate)} · fällig: ${formatDate(dueDate)}`
-    : `fällig: ${formatDate(dueDate)}`;
+  const writerDates = getWriterDates();
+  const url = tag ? buildDeviceUrl(tag, { nextCheck: writerDates.dueDate }) : "-";
+  const dateLabel = writerDates.mode === "checked"
+    ? `geprüft: ${formatDate(writerDates.checkDate)} · fällig: ${formatDate(writerDates.dueDate)}`
+    : `fällig: ${formatDate(writerDates.dueDate)}`;
   els.writerPreview.textContent = tag
     ? `${tag} · ${els.writerPart.value || "Bauteil fehlt"} · ${dateLabel} · ${url}`
     : "-";
+}
+
+function getWriterDates() {
+  const dueDate = els.writerDueDate.value;
+  const checkDate = els.writerCheckDate.value;
+  if (dueDate) return { mode: "due", dueDate, checkDate: "" };
+  if (checkDate) return { mode: "checked", dueDate: addYears(checkDate, 2), checkDate };
+  return { mode: "empty", dueDate: "", checkDate: "" };
+}
+
+function syncWriterDateChoice(changed) {
+  if (changed === "due" && els.writerDueDate.value) {
+    els.writerCheckDate.value = "";
+  }
+  if (changed === "checked" && els.writerCheckDate.value) {
+    els.writerDueDate.value = "";
+  }
+  saveWriterDefaults();
+  renderWriterPreview();
 }
 
 function logWalkCheck(entry) {
@@ -1880,8 +1894,8 @@ function loadWriterDefaults() {
   try {
     const defaults = JSON.parse(localStorage.getItem(WRITER_KEY) || "{}");
     els.writerInspector.value = defaults.inspector || localStorage.getItem(INSPECTOR_KEY) || "Peschel";
-    els.writerDate.value = defaults.nextCheck || defaults.testDate || "";
-    els.writerDateMode.value = defaults.dateMode || "due";
+    els.writerDueDate.value = defaults.dueDate || defaults.nextCheck || "";
+    els.writerCheckDate.value = defaults.checkDate || "";
     els.writerLab.value = defaults.lab || "";
     els.writerPlace.value = defaults.place || "";
     els.writerTag.value = defaults.tagId || "";
@@ -1896,8 +1910,8 @@ function saveWriterDefaults() {
     WRITER_KEY,
     JSON.stringify({
       inspector: els.writerInspector.value.trim(),
-      nextCheck: els.writerDate.value,
-      dateMode: els.writerDateMode.value,
+      dueDate: els.writerDueDate.value,
+      checkDate: els.writerCheckDate.value,
       lab: els.writerLab.value.trim(),
       place: els.writerPlace.value.trim(),
       tagId: normalizeTag(els.writerTag.value),

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=16" />
+    <link rel="stylesheet" href="styles.css?v=17" />
   </head>
   <body>
     <main class="app-shell">
@@ -29,15 +29,12 @@
             </select>
           </label>
           <label>
-            Datum
-            <input id="writerDate" type="date" required />
+            Fälligkeitsdatum
+            <input id="writerDueDate" type="date" />
           </label>
           <label>
-            Datum bedeutet
-            <select id="writerDateMode">
-              <option value="due">Fälligkeitsdatum</option>
-              <option value="checked">Prüfdatum (+ 2 Jahre)</option>
-            </select>
+            Prüfdatum
+            <input id="writerCheckDate" type="date" />
           </label>
           <label>
             Labor
@@ -189,7 +186,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=16"></script>
+    <script src="app.js?v=17"></script>
   </body>
 </html>
 
