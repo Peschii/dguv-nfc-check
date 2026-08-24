@@ -108,7 +108,7 @@ function init() {
 
   const idFromUrl = new URLSearchParams(location.search).get("id");
   if (idFromUrl) {
-    findAndShow(idFromUrl);
+    findAndShow(location.href);
   } else {
     showStart();
   }
