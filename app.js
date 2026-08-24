@@ -2,6 +2,7 @@ const STORAGE_KEY = "dguv-nfc-devices-v1";
 const SHEET_URL_KEY = "dguv-nfc-sheet-url-v1";
 const WALK_LOG_KEY = "dguv-nfc-walk-log-v1";
 const INSPECTOR_KEY = "dguv-nfc-inspector-v1";
+const ROUND_LAB_KEY = "dguv-nfc-round-lab-v1";
 const WRITER_KEY = "dguv-nfc-writer-v1";
 const PUBLIC_APP_URL = "https://peschii.github.io/dguv-nfc-check/";
 const DEFAULT_DEVICES = [
@@ -32,6 +33,7 @@ const els = {
   statusSubline: document.getElementById("statusSubline"),
   scanButton: document.getElementById("scanButton"),
   inspectorInput: document.getElementById("inspectorInput"),
+  roundLabInput: document.getElementById("roundLabInput"),
   writeUrlButton: document.getElementById("writeUrlButton"),
   writeTextButton: document.getElementById("writeTextButton"),
   searchButton: document.getElementById("searchButton"),
@@ -111,6 +113,7 @@ init();
 function init() {
   els.sheetUrlInput.value = localStorage.getItem(SHEET_URL_KEY) || "";
   els.inspectorInput.value = localStorage.getItem(INSPECTOR_KEY) || "";
+  els.roundLabInput.value = localStorage.getItem(ROUND_LAB_KEY) || "";
   loadWriterDefaults();
 
   if (!("NDEFReader" in window)) {
@@ -144,6 +147,9 @@ function init() {
   els.inspectorInput.addEventListener("input", () => {
     localStorage.setItem(INSPECTOR_KEY, els.inspectorInput.value.trim());
     renderWarnings();
+  });
+  els.roundLabInput.addEventListener("input", () => {
+    localStorage.setItem(ROUND_LAB_KEY, els.roundLabInput.value.trim());
   });
   els.tagInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") findAndShow(els.tagInput.value);
@@ -466,6 +472,8 @@ async function writePreparedTagUsb(device) {
 }
 
 async function scanNfc() {
+  if (!requireRoundInfo()) return;
+
   if (!("NDEFReader" in window)) {
     showUnknown("Kein NFC", "Nicht unterstützt", "Bitte Chrome auf Android verwenden.");
     return;
@@ -531,6 +539,7 @@ function findAndShow(input, source = "Manuell", shouldLog = true) {
   let tag = normalizeTag(input);
   els.tagInput.value = tag;
   state.currentTag = tag;
+  if (shouldLog && !requireRoundInfo()) return;
   let device = deviceFromTagPayload(input);
   if (!device) {
     device = state.devices.find((item) => normalizeTag(item.tagId) === tag);
@@ -598,8 +607,18 @@ function showStart() {
   els.statusPanel.className = "status-panel start";
   els.statusKicker.textContent = "Bereit";
   els.statusText.textContent = "Bitte erstes Gerät scannen";
-  els.statusSubline.textContent = "NFC-Tag halten oder Tag-ID eingeben.";
+  els.statusSubline.textContent = "Erst Prüfer und Labor wählen, dann NFC-Tag halten oder Tag-ID eingeben.";
   setDetails({});
+}
+
+function requireRoundInfo() {
+  const missing = [];
+  if (!els.inspectorInput.value.trim()) missing.push("Prüfer");
+  if (!els.roundLabInput.value.trim()) missing.push("Labor");
+  if (!missing.length) return true;
+  showUnknown("Rundgang starten", `${missing.join(" und ")} fehlt`, "Bitte oben eintragen, dann erneut scannen oder suchen.");
+  setDetails({});
+  return false;
 }
 
 function setDetails(device = {}) {
@@ -920,6 +939,7 @@ function syncWriterDateChoice(changed) {
 
 function logWalkCheck(entry) {
   const now = new Date();
+  const roundLab = els.roundLabInput.value.trim();
   const row = {
     time: now.toISOString(),
     localTime: now.toLocaleString("de-DE"),
@@ -929,7 +949,7 @@ function logWalkCheck(entry) {
     status: entry.status || "Unbekannt",
     part: entry.part || "",
     nextCheck: entry.nextCheck || "",
-    lab: entry.lab || "",
+    lab: roundLab || entry.lab || "",
     place: entry.place || "",
   };
 

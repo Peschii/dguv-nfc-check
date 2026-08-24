@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <title>DGUV NFC Check</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=33" />
+    <link rel="stylesheet" href="styles.css?v=34" />
   </head>
   <body>
     <main class="app-shell">
@@ -121,13 +121,20 @@
       </section>
 
       <section class="controls check-view" aria-label="Scan und Suche">
-        <label class="inspector-field" for="inspectorInput">
-          Prüfer
-          <select id="inspectorInput">
-            <option value="Peschel">Peschel</option>
-            <option value="Kittelmann">Kittelmann</option>
-          </select>
-        </label>
+        <div class="round-fields">
+          <label class="inspector-field" for="inspectorInput">
+            Prüfer
+            <select id="inspectorInput" required>
+              <option value="">Prüfer wählen</option>
+              <option value="Peschel">Peschel</option>
+              <option value="Kittelmann">Kittelmann</option>
+            </select>
+          </label>
+          <label class="inspector-field" for="roundLabInput">
+            Labor
+            <input id="roundLabInput" autocomplete="organization" placeholder="Labor eintragen" required />
+          </label>
+        </div>
         <button class="primary" id="scanButton" type="button">NFC scannen</button>
         <div class="manual-search">
           <input id="tagInput" autocomplete="off" placeholder="EL-001 oder ELEKTRO|EL-001" />
@@ -234,7 +241,7 @@
         </ol>
       </section>
     </main>
-    <script src="app.js?v=33"></script>
+    <script src="app.js?v=34"></script>
   </body>
 </html>
 
