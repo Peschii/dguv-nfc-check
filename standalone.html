@@ -779,7 +779,7 @@ function init() {
 
   const idFromUrl = new URLSearchParams(location.search).get("id");
   if (idFromUrl) {
-    findAndShow(location.href);
+    findAndShow(location.href, "NFC-Tag");
   } else {
     showStart();
   }
@@ -1591,7 +1591,7 @@ function renderWalkLog() {
     item.innerHTML = `
       <strong>${escapeHtml(row.tagId || "-")}</strong>
       <span>${escapeHtml(row.status || "-")}</span>
-      <small>${escapeHtml(row.localTime || "-")} · ${escapeHtml(row.source || "-")} · ${escapeHtml(row.inspector || "Ohne Prüfer")}</small>
+      <small>${escapeHtml(row.localTime || "-")} · ${escapeHtml(formatSource(row.source))} · ${escapeHtml(row.inspector || "Ohne Prüfer")}</small>
       <small>${escapeHtml(row.part || "-")} · ${escapeHtml(row.lab || "-")} · ${escapeHtml(row.place || "-")}</small>
     `;
     els.walkLogList.appendChild(item);
@@ -1599,12 +1599,16 @@ function renderWalkLog() {
 }
 
 function buildWalkLogCsv() {
+  const stats = getWalkLogStats();
   const rows = [
-    ["Zeit", "Pruefer", "Quelle", "Tag_ID", "Ergebnis", "Bauteil", "NaechstePruefung", "Labor", "Ort"],
+    ["DGUV Laborrundgang"],
+    [`Exportiert am: ${new Date().toLocaleString("de-DE")}`],
+    [],
+    ["Zeit", "Prüfer", "Quelle", "Tag-ID", "Ergebnis", "Gerätename", "Fälligkeitsdatum", "Labor", "Ort"],
     ...state.walkLog.map((row) => [
       row.localTime,
       row.inspector || "",
-      row.source,
+      formatSource(row.source),
       row.tagId,
       row.status,
       row.part,
@@ -1612,9 +1616,39 @@ function buildWalkLogCsv() {
       row.lab,
       row.place,
     ]),
+    [],
+    ["Statistik"],
+    ["Geprüft und iO", stats.valid],
+    ["Bald prüfen", stats.soon],
+    ["Dringend Prüfung veranlassen", stats.invalid],
+    ["Unbekannt", stats.unknown],
+    ["Gesamt", stats.total],
   ];
 
   return rows.map((row) => row.map(csvCell).join(";")).join("\r\n");
+}
+
+function getWalkLogStats() {
+  return state.walkLog.reduce(
+    (stats, row) => {
+      const status = row.status || "Unbekannt";
+      if (status === "Geprüft und iO") stats.valid += 1;
+      else if (status === "Bald prüfen") stats.soon += 1;
+      else if (status === "Dringend Prüfung veranlassen") stats.invalid += 1;
+      else stats.unknown += 1;
+      stats.total += 1;
+      return stats;
+    },
+    { valid: 0, soon: 0, invalid: 0, unknown: 0, total: 0 }
+  );
+}
+
+function formatSource(source) {
+  if (source === "NFC-Tag") return "NFC-Tag";
+  if (source === "NFC") return "NFC-Scan";
+  if (source === "USB-NFC") return "USB-NFC";
+  if (source === "Manuell") return "Manuell";
+  return source || "Manuell";
 }
 
 function csvCell(value) {
@@ -1642,8 +1676,23 @@ function emailWalkLog() {
     return;
   }
 
+  const stats = getWalkLogStats();
   const subject = encodeURIComponent(`DGUV Laborrundgang ${new Date().toLocaleDateString("de-DE")}`);
-  const body = encodeURIComponent(buildWalkLogCsv());
+  const body = encodeURIComponent(
+    [
+      `DGUV Laborrundgang ${new Date().toLocaleString("de-DE")}`,
+      "",
+      "Statistik:",
+      `Geprüft und iO: ${stats.valid}`,
+      `Bald prüfen: ${stats.soon}`,
+      `Dringend Prüfung veranlassen: ${stats.invalid}`,
+      `Unbekannt: ${stats.unknown}`,
+      `Gesamt: ${stats.total}`,
+      "",
+      "CSV:",
+      buildWalkLogCsv(),
+    ].join("\r\n")
+  );
   location.href = `mailto:?subject=${subject}&body=${body}`;
 }
 
